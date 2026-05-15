@@ -11,27 +11,23 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
-@Getter
 @Entity
 @Table(name = "auto_sync")
+@Getter
+@ToString(callSuper = true, exclude = "indexInfo")
+@SuperBuilder
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AutoSync extends BaseEntity {
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "index_info_id", nullable = false, unique = true)
-    private IndexInfo indexInfo;
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "index_info_id", nullable = false, unique = true)
+  private IndexInfo indexInfo;
 
-    @Column(nullable = false)
-    private Boolean enabled;
-
-    public AutoSync(IndexInfo indexInfo, Boolean enabled) {
-        super();
-        this.indexInfo = indexInfo;
-        this.enabled = enabled;
-    }
+  @Column(name = "enabled", nullable = false)
+  private boolean enabled;
 
 }
