@@ -29,4 +29,5 @@ public class AutoSync extends BaseEntity {
 
   @Column(name = "enabled", nullable = false)
   private boolean enabled;
+
 }

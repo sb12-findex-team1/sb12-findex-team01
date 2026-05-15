@@ -1,11 +1,11 @@
 package com.codeit.findex.entity.base;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -25,16 +25,23 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @ToString
 public abstract class BaseEntity {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  @Column(name = "id", updatable = false, nullable = false)
-  private UUID id;
+    @Id
+    @Column(name = "id", updatable = false, nullable = false)
+    private UUID id;
 
-  @CreatedDate
-  @Column(name = "created_at", updatable = false, nullable = false)
-  private Instant createdAt;
+    @CreatedDate
+    @Column(name = "created_at", updatable = false, nullable = false)
+    private Instant createdAt;
 
-  @LastModifiedDate
-  @Column(name = "updated_at")
-  private Instant updatedAt;
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private Instant updatedAt;
+
+    @PrePersist
+    protected void prePersist() {
+        if (this.id == null) {
+            this.id = UuidCreator.getTimeOrderedEpoch();
+        }
+    }
+
 }
