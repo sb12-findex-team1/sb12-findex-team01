@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -35,7 +36,7 @@ public class SyncJob extends BaseEntity {
   private JobType jobType;
 
   @Column(name = "target_date", nullable = false)
-  private Instant targetDate;
+  private LocalDate targetDate;
 
   @Column(nullable = false, length = 100)
   private String worker;
