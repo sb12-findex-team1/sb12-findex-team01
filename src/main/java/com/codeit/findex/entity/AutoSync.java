@@ -30,12 +30,4 @@ public class AutoSync extends BaseEntity {
   @Column(name = "enabled", nullable = false)
   private boolean enabled;
 
-  public void enable() {
-    this.enabled = true;
-  }
-
-  public void disable() {
-    this.enabled = false;
-  }
-
 }
