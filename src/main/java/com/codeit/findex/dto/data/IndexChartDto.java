@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 public record IndexChartDto(
-    UUID indexInfoId,                     // 지수 정보 ID
+    UUID indexInfoId,                    // 지수 정보 ID
     String indexClassification,          // 지수 분류 (예: "KOSPI시리즈")
     String indexName,                    // 지수 명칭 (예: "IT서비스")
     String periodType,                   // 기간 타입 (예: "DAILY")
