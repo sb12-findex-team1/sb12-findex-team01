@@ -8,8 +8,9 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -20,7 +21,14 @@ import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 @Entity
-@Table(name = "index_infos")
+@Table(name = "index_infos",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_index_infos_index_classification_index_name",
+            columnNames = {"index_classification", "index_name"}
+        )
+    }
+)
 @Getter
 @ToString(callSuper = true, exclude = {
     "syncJobs",
@@ -48,7 +56,7 @@ public class IndexInfo extends BaseEntity {
   private BigDecimal baseIndex;
 
   @Column(name = "base_point_in_time")
-  private Instant basePointInTime;
+  private LocalDate basePointInTime;
 
   @Column(name = "favorite", nullable = false)
   private boolean favorite;
