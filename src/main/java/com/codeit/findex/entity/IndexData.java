@@ -7,8 +7,9 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -17,7 +18,14 @@ import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 @Entity
-@Table(name = "index_data")
+@Table(name = "index_data",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_index_data_index_info_base_date",
+            columnNames = {"index_info_id", "base_date"}
+        )
+    }
+)
 @Getter
 @ToString(callSuper = true, exclude = "indexInfo")
 @SuperBuilder
@@ -30,7 +38,7 @@ public class IndexData extends BaseEntity {
   private IndexInfo indexInfo;
 
   @Column(name = "base_date", nullable = false)
-  private Instant baseDate;
+  private LocalDate baseDate;
 
   @Column(name = "market_price", precision = 10, scale = 2)
   private BigDecimal marketPrice;

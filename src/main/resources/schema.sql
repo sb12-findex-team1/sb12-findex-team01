@@ -14,7 +14,10 @@ CREATE TABLE index_infos
 	base_point_in_time     date                     NULL,
 	favorite               boolean                  NOT NULL,
 	created_at             TIMESTAMP WITH TIME ZONE NOT NULL,
-	updated_at             TIMESTAMP WITH TIME ZONE NULL
+	updated_at             TIMESTAMP WITH TIME ZONE NULL,
+
+	CONSTRAINT uk_index_infos_index_classification_index_name
+		UNIQUE (index_classification, index_name)
 );
 
 CREATE TABLE index_data
@@ -57,7 +60,7 @@ CREATE TABLE sync_jobs
 			REFERENCES index_infos (id) ON DELETE CASCADE
 );
 
-CREATE TABLE auto_sync_configs
+CREATE TABLE auto_sync
 (
 	id             uuid PRIMARY KEY,
 	index_info_id  uuid                     NOT NULL UNIQUE,
