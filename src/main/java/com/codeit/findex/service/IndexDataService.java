@@ -1,8 +1,8 @@
 package com.codeit.findex.service;
 
-import com.codeit.findex.dto.data.IndexChartDto;
-import com.codeit.findex.dto.data.IndexPerformanceDto;
-import com.codeit.findex.dto.data.RankedIndexPerformanceDto;
+import com.codeit.findex.dto.indexdata.IndexChartDto;
+import com.codeit.findex.dto.indexdata.IndexPerformanceDto;
+import com.codeit.findex.dto.indexdata.RankedIndexPerformanceDto;
 import com.codeit.findex.entity.PeriodType;
 import java.util.List;
 import java.util.UUID;
