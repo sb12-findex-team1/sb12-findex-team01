@@ -38,14 +38,14 @@ public class SyncJob extends BaseEntity {
   @Column(name = "target_date", nullable = false)
   private LocalDate targetDate;
 
-  @Column(nullable = false, length = 100)
+  @Column(name = "worker", nullable = false, length = 100)
   private String worker;
 
   @Column(name = "job_time", nullable = false)
   private Instant jobTime;
 
   @Enumerated(EnumType.STRING)
-  @Column(nullable = false)
+  @Column(name = "result", nullable = false, length = 50)
   private Result result;
 
 }
