@@ -29,10 +29,11 @@ public class IndexDataServiceImpl implements IndexDataService {
     IndexInfo indexInfo = indexInfoRepository.findById(id)
         .orElseThrow(() -> new IllegalArgumentException("지수 정보가 존재하지 않습니다."));
 
+    // 날짜 계산 로직 생각중입니다 일단은 하드코딩
     int fetchDays = switch (periodType) {
       case DAILY -> 1;
       case WEEKLY -> 7;
-      case MONTHLY -> 30;
+      case MONTHLY -> 22;
     };
 
     LocalDate endDate = LocalDate.now();
@@ -47,8 +48,8 @@ public class IndexDataServiceImpl implements IndexDataService {
     // 데이터가 요청한 fetchDays보다 적을 수 있으므로 안전장치 마련
     int limit = Math.min(fetchDays, rawData.size());
 
-    // 과거(limit - 1)부터 최신(0)으로 거꾸로 루프를 돕니다.
-    // 결과 리스트(dataPoints)에는 차트용 ASC(과거->최신) 순서로 쌓입니다!
+    // 과거(limit - 1)부터 최신(0)으로 거꾸로 루프를 돕니다
+    // 결과 리스트(dataPoints)에는 차트용 ASC(과거->최신) 순서로 쌓입니다
     for (int i = limit - 1; i >= 0; i--) {
       IndexData current = rawData.get(i);
       String dateStr = current.getBaseDate().toString();
