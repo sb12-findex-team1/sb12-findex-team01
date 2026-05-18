@@ -19,3 +19,6 @@ ALTER SCHEMA public OWNER TO findex_user;
 -- 앞으로 생성되는 테이블/시퀀스 권한 자동 부여
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
 	GRANT ALL ON TABLES TO findex_user;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+	GRANT ALL ON SEQUENCES TO findex_user;
