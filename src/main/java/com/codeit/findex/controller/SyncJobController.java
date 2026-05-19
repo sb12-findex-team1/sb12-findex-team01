@@ -1,13 +1,15 @@
 package com.codeit.findex.controller;
 
 import com.codeit.findex.dto.syncJob.IndexDataSyncRequest;
-import com.codeit.findex.dto.syncJob.SyncJobDto;
+import com.codeit.findex.dto.syncJob.SyncJobListResponse;
+import com.codeit.findex.dto.syncJob.SyncJobSearchRequest;
 import com.codeit.findex.service.SyncJobService;
+
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,7 +34,9 @@ public class SyncJobController {
   }
 
   @GetMapping
-  public ResponseEntity<List<SyncJobDto>> findAll() {
-    return ResponseEntity.ok(syncJobService.findAll());
+  public ResponseEntity<SyncJobListResponse> findAll(
+      @ModelAttribute SyncJobSearchRequest request
+  ) {
+    return ResponseEntity.ok(syncJobService.findAll(request));
   }
 }
