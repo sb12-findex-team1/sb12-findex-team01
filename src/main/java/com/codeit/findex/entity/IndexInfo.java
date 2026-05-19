@@ -6,7 +6,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
@@ -32,7 +31,6 @@ import lombok.experimental.SuperBuilder;
 @Getter
 @ToString(callSuper = true, exclude = {
     "syncJobs",
-    "autoSync",
     "indexData"
 })
 @SuperBuilder
@@ -77,11 +75,13 @@ public class IndexInfo extends BaseEntity {
   )
   private List<SyncJob> syncJobs = new ArrayList<>();
 
-  @OneToOne(
-      mappedBy = "indexInfo",
-      fetch = FetchType.LAZY,
-      cascade = CascadeType.ALL,
-      orphanRemoval = true
-  )
-  private AutoSync autoSync;
+  public void updateByOpenApi(
+      Integer employedItemsCount,
+      LocalDate basePointInTime,
+      BigDecimal baseIndex
+  ) {
+    this.employedItemsCount = employedItemsCount;
+    this.basePointInTime = basePointInTime;
+    this.baseIndex = baseIndex;
+  }
 }
