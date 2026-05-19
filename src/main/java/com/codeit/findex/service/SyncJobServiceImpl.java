@@ -115,9 +115,10 @@ public class SyncJobServiceImpl implements SyncJobService {
     String nextIdAfter = null;
 
     if (hasNext && !content.isEmpty()) {
-      UUID lastId = content.get(content.size() - 1).id();
-      nextCursor = lastId.toString();
-      nextIdAfter = lastId.toString();
+      SyncJobDto last = content.get(content.size() - 1);
+
+      nextCursor = getNextCursor(last, request.sortField());
+      nextIdAfter = last.id().toString();
     }
 
     return new SyncJobListResponse(
@@ -148,20 +149,6 @@ public class SyncJobServiceImpl implements SyncJobService {
     }
 
     return Math.min(size, MAX_SIZE);
-  }
-
-  private PageRequest createPageRequest(SyncJobSearchRequest request, int size) {
-    String sortField = resolveSortField(request.sortField());
-    Sort.Direction sortDirection = resolveSortDirection(request.sortDirection());
-
-    return PageRequest.of(
-        0,
-        size + 1,
-        Sort.by(
-            new Sort.Order(sortDirection, sortField),
-            new Sort.Order(sortDirection, "id")
-        )
-    );
   }
 
   private String resolveSortField(String sortField) {
@@ -197,14 +184,16 @@ public class SyncJobServiceImpl implements SyncJobService {
         """);
 
     appendSearchConditions(jpql, request);
-
-    jpql.append(" order by s.jobTime desc, s.id desc");
+    appendCursorCondition(jpql, request);
+    appendOrderBy(jpql, request);
 
     TypedQuery<SyncJob> query = entityManager.createQuery(
         jpql.toString(), SyncJob.class
     );
 
     setSearchParameters(query, request);
+
+    setCursorParameters(query, request);
 
     query.setMaxResults(size + 1);
 
@@ -298,6 +287,87 @@ public class SyncJobServiceImpl implements SyncJobService {
     if (request.status() != null && !request.status().isBlank()) {
       query.setParameter("result", Result.valueOf(request.status()));
     }
+  }
+
+  private void appendCursorCondition(StringBuilder jpql, SyncJobSearchRequest request) {
+
+    if (request.cursor() == null || request.cursor().isBlank() || request.idAfter() == null) {
+      return;
+    }
+
+    String sortField = resolveSortField(request.sortField());
+    Sort.Direction sortDirection = resolveSortDirection(request.sortDirection());
+
+    if (sortField.equals("jobTime")) {
+      if (sortDirection.isDescending()) {
+        jpql.append("""
+             and (s.jobTime < :cursorJobTime
+            or (s.jobTime = :cursorJobTime and s.id < :idAfter))
+            """);
+      } else {
+        jpql.append("""
+             and (s.jobTime > :cursorJobTime
+            or (s.jobTime = :cursorJobTime and s.id > :idAfter))
+            """);
+      }
+    }
+
+    if (sortField.equals("targetDate")) {
+      if (sortDirection.isDescending()) {
+        jpql.append("""
+             and (s.targetDate < :cursorTargetDate
+            or (s.targetDate = :cursorTargetDate and s.id < :idAfter))
+            """);
+      } else {
+        jpql.append("""
+             and (s.targetDate > :cursorTargetDate
+            or (s.targetDate = :cursorTargetDate and s.id > :idAfter))
+            """);
+      }
+    }
+  }
+
+  private void appendOrderBy(StringBuilder jpql, SyncJobSearchRequest request) {
+    String sortField = resolveSortField(request.sortField());
+    Sort.Direction sortDirection = resolveSortDirection(request.sortDirection());
+
+    String direction = sortDirection.isDescending() ? "desc" : "asc";
+
+    jpql.append(" order by s.")
+        .append(sortField)
+        .append(" ")
+        .append(direction)
+        .append(", s.id ")
+        .append(direction);
+  }
+
+  private void setCursorParameters(TypedQuery<?> query, SyncJobSearchRequest request) {
+
+    if (request.cursor() == null || request.cursor().isBlank() || request.idAfter() == null) {
+      return;
+    }
+
+    String sortField = resolveSortField(request.sortField());
+
+    if (sortField.equals("jobTime")) {
+      query.setParameter("cursorJobTime", Instant.parse(request.cursor()));
+    }
+
+    if (sortField.equals("targetDate")) {
+      query.setParameter("cursorTargetDate", LocalDate.parse(request.cursor()));
+    }
+
+    query.setParameter("idAfter", request.idAfter());
+  }
+
+  private String getNextCursor(SyncJobDto dto, String sortField) {
+    String resolvedSortField = resolveSortField(sortField);
+
+    if (resolvedSortField.equals("targetDate")) {
+      return dto.targetDate().toString();
+    }
+
+    return dto.jobTime().toString();
   }
 
 }
