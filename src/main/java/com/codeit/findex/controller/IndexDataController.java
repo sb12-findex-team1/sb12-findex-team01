@@ -5,6 +5,8 @@ import com.codeit.findex.dto.indexdata.IndexPerformanceDto;
 import com.codeit.findex.dto.indexdata.RankedIndexPerformanceDto;
 import com.codeit.findex.entity.PeriodType;
 import com.codeit.findex.service.IndexDataService;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +24,7 @@ public class IndexDataController {
   private final IndexDataService indexDataService;
 
   // 지수 차트 조회
-  @GetMapping("{id}/chart")
+  @GetMapping("/{id}/chart")
   public ResponseEntity<IndexChartDto> getIndexChart(
       @PathVariable UUID id,
       @RequestParam(defaultValue = "DAILY") PeriodType periodType
@@ -32,11 +34,11 @@ public class IndexDataController {
   }
 
   // 지수 성과 랭킹 조회
-  @GetMapping("performance/rank")
+  @GetMapping("/performance/rank")
   public ResponseEntity<List<RankedIndexPerformanceDto>> getPerformanceRank(
       @RequestParam UUID indexInfoId,
       @RequestParam(defaultValue = "DAILY") PeriodType periodType,
-      @RequestParam(defaultValue = "10") Integer limit
+      @RequestParam(defaultValue = "10") @Min(1) @Max(50) Integer limit
   ) {
     List<RankedIndexPerformanceDto> response =
         indexDataService.getPerformanceRanking(indexInfoId, periodType, limit);
@@ -44,7 +46,7 @@ public class IndexDataController {
   }
 
   // 관심 지수 성과 조회
-  @GetMapping("performance/favorite")
+  @GetMapping("/performance/favorite")
   public ResponseEntity<List<IndexPerformanceDto>> getPerformanceFavorite(
       @RequestParam(defaultValue = "DAILY") PeriodType periodType
   ) {
