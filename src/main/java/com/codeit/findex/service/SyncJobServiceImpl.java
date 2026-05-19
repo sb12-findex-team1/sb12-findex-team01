@@ -11,6 +11,8 @@ import com.codeit.findex.entity.SyncJob;
 import com.codeit.findex.repository.IndexInfoRepository;
 import com.codeit.findex.repository.SyncJobRepository;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 import java.util.ArrayList;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
@@ -31,6 +33,8 @@ public class SyncJobServiceImpl implements SyncJobService {
 
   private final SyncJobRepository syncJobRepository;
   private final IndexInfoRepository indexInfoRepository;
+
+  private final EntityManager entityManager;
 
 
   @Override
@@ -95,9 +99,8 @@ public class SyncJobServiceImpl implements SyncJobService {
   @Override
   public SyncJobListResponse findAll(SyncJobSearchRequest request) {
     int size = resolveSize(request.size());
-    PageRequest pageRequest = createPageRequest(request, size);
 
-    List<SyncJob> syncJobs = syncJobRepository.findSyncJobList(pageRequest);
+    List<SyncJob> syncJobs = searchSyncJobs(request, size);
 
     List<SyncJobDto> content = syncJobs.stream()
         .limit(size)
@@ -106,7 +109,7 @@ public class SyncJobServiceImpl implements SyncJobService {
 
     boolean hasNext = syncJobs.size() > size;
 
-    int totalElements = syncJobRepository.countSyncJobList();
+    int totalElements = countSyncJobs(request);
 
     String nextCursor = null;
     String nextIdAfter = null;
@@ -185,5 +188,116 @@ public class SyncJobServiceImpl implements SyncJobService {
     };
   }
 
+  private List<SyncJob> searchSyncJobs(SyncJobSearchRequest request, int size) {
+    StringBuilder jpql = new StringBuilder("""
+          select s
+          from SyncJob s
+          join fetch s.indexInfo i
+          where 1 = 1
+        """);
+
+    appendSearchConditions(jpql, request);
+
+    jpql.append(" order by s.jobTime desc, s.id desc");
+
+    TypedQuery<SyncJob> query = entityManager.createQuery(
+        jpql.toString(), SyncJob.class
+    );
+
+    setSearchParameters(query, request);
+
+    query.setMaxResults(size + 1);
+
+    return query.getResultList();
+  }
+
+  private int countSyncJobs(SyncJobSearchRequest request) {
+    StringBuilder jpql = new StringBuilder("""
+          select count(s)
+          from SyncJob s
+          join s.indexInfo i
+          where 1 = 1
+        """);
+
+    appendSearchConditions(jpql, request);
+
+    TypedQuery<Long> query = entityManager.createQuery(
+        jpql.toString(), Long.class
+    );
+
+    setSearchParameters(query, request);
+
+    return query.getSingleResult().intValue();
+  }
+
+  private void appendSearchConditions(StringBuilder jpql, SyncJobSearchRequest request) {
+
+    if (request.jobType() != null && !request.jobType().isBlank()) {
+      jpql.append(" and s.jobType = :jobType");
+    }
+
+    if (request.indexInfoId() != null) {
+      jpql.append(" and i.id = :indexInfoId");
+    }
+
+    if (request.baseDateFrom() != null) {
+      jpql.append(" and s.targetDate >= :baseDateFrom");
+    }
+
+    if (request.baseDateTo() != null) {
+      jpql.append(" and s.targetDate <= :baseDateTo");
+    }
+
+    if (request.worker() != null && !request.worker().isBlank()) {
+      jpql.append(" and s.worker = :worker");
+    }
+
+    if (request.jobTimeFrom() != null) {
+      jpql.append(" and s.jobTime >= :jobTimeFrom");
+    }
+
+    if (request.jobTimeTo() != null) {
+      jpql.append(" and s.jobTime <= :jobTimeTo");
+    }
+
+    if (request.status() != null && !request.status().isBlank()) {
+      jpql.append(" and s.result = :result");
+    }
+  }
+
+  private void setSearchParameters(TypedQuery<?> query, SyncJobSearchRequest request) {
+
+    if (request.jobType() != null && !request.jobType().isBlank()) {
+      query.setParameter("jobType", JobType.valueOf(request.jobType()));
+    }
+
+    if (request.indexInfoId() != null) {
+      query.setParameter("indexInfoId", request.indexInfoId());
+    }
+
+    if (request.baseDateFrom() != null) {
+      query.setParameter("baseDateFrom", request.baseDateFrom());
+    }
+
+    if (request.baseDateTo() != null) {
+      query.setParameter("baseDateTo", request.baseDateTo());
+    }
+
+    if (request.worker() != null && !request.worker().isBlank()) {
+      query.setParameter("worker", request.worker());
+    }
+
+    if (request.jobTimeFrom() != null) {
+      query.setParameter("jobTimeFrom", request.jobTimeFrom());
+    }
+
+    if (request.jobTimeTo() != null) {
+      query.setParameter("jobTimeTo", request.jobTimeTo());
+    }
+
+    if (request.status() != null && !request.status().isBlank()) {
+      query.setParameter("result", Result.valueOf(request.status()));
+    }
+  }
 
 }
