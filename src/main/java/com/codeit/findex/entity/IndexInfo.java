@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -68,7 +67,6 @@ public class IndexInfo extends BaseEntity {
       cascade = CascadeType.ALL,
       orphanRemoval = true
   )
-  @Builder.Default
   private List<IndexData> indexData = new ArrayList<>();
 
   @OneToMany(
@@ -77,7 +75,6 @@ public class IndexInfo extends BaseEntity {
       cascade = CascadeType.ALL,
       orphanRemoval = true
   )
-  @Builder.Default
   private List<SyncJob> syncJobs = new ArrayList<>();
 
   @OneToOne(
