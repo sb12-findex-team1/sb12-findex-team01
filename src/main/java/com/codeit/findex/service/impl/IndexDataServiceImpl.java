@@ -46,11 +46,11 @@ public class IndexDataServiceImpl implements IndexDataService {
         dataPoints.add(new ChartDataPoint(dateStr, current.getClosingPrice().doubleValue()));
       }
 
-      if (hasEnoughData(i, 5, rawData.size())) {
+      if (i + 5 <= rawData.size()) {
         ma5DataPoints.add(new ChartDataPoint(dateStr, calculateMovingAverage(rawData, i, 5)));
       }
 
-      if (hasEnoughData(i, 20, rawData.size())) {
+      if (i + 20 <= rawData.size()) {
         ma20DataPoints.add(new ChartDataPoint(dateStr, calculateMovingAverage(rawData, i, 20)));
       }
     }
@@ -84,28 +84,9 @@ public class IndexDataServiceImpl implements IndexDataService {
 
     for (IndexData current : currentDataList) {
       IndexData before = beforeMap.get(current.getIndexInfo().getId());
-      if (before != null && current.getClosingPrice() != null && before.getClosingPrice() != null) {
 
-        BigDecimal currentPrice = current.getClosingPrice();
-        BigDecimal beforePrice = before.getClosingPrice();
-
-        BigDecimal versus = currentPrice.subtract(beforePrice);
-
-        BigDecimal fluctuationRate = BigDecimal.ZERO;
-        if (beforePrice.compareTo(BigDecimal.ZERO) != 0) {
-          fluctuationRate = versus.divide(beforePrice, 4, RoundingMode.HALF_UP)
-              .multiply(BigDecimal.valueOf(100));
-        }
-
-        performances.add(new IndexPerformanceDto(
-            current.getIndexInfo().getId(),
-            current.getIndexInfo().getIndexClassification(),
-            current.getIndexInfo().getIndexName(),
-            versus.doubleValue(),
-            fluctuationRate.doubleValue(),
-            currentPrice.doubleValue(),
-            beforePrice.doubleValue()
-        ));
+      if (before != null && current.getClosingPrice() != null) {
+        performances.add(convertToPerformanceDto(current, before));
       }
     }
 
@@ -137,27 +118,32 @@ public class IndexDataServiceImpl implements IndexDataService {
         .filter(d -> d.getIndexInfo() != null && d.getIndexInfo().isFavorite())
         .map(current -> {
           IndexData before = beforeMap.get(current.getIndexInfo().getId());
+          return convertToPerformanceDto(current, before);
+        })
+        .toList();
+  }
 
-          BigDecimal currentPrice = current.getClosingPrice() != null ? current.getClosingPrice() : BigDecimal.ZERO;
-          BigDecimal beforePrice = (before != null && before.getClosingPrice() != null) ? before.getClosingPrice() : currentPrice;
+  private IndexPerformanceDto convertToPerformanceDto(IndexData current, IndexData before) {
+    BigDecimal currentPrice = current.getClosingPrice() != null ? current.getClosingPrice() : BigDecimal.ZERO;
+    BigDecimal beforePrice = (before != null && before.getClosingPrice() != null) ? before.getClosingPrice() : currentPrice;
 
-          BigDecimal versus = currentPrice.subtract(beforePrice);
-          BigDecimal fluctuationRate = BigDecimal.ZERO;
-          if (beforePrice.compareTo(BigDecimal.ZERO) != 0) {
-            fluctuationRate = versus.divide(beforePrice, 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
-          }
+    BigDecimal versus = currentPrice.subtract(beforePrice);
 
-          return new IndexPerformanceDto(
-              current.getIndexInfo().getId(),
-              current.getIndexInfo().getIndexClassification(),
-              current.getIndexInfo().getIndexName(),
-              versus.doubleValue(),
-              fluctuationRate.doubleValue(),
-              currentPrice.doubleValue(),
-              beforePrice.doubleValue()
-          );
-        }).toList();
+    BigDecimal fluctuationRate = BigDecimal.ZERO;
+    if (beforePrice.compareTo(BigDecimal.ZERO) != 0) {
+      fluctuationRate = versus.divide(beforePrice, 4, RoundingMode.HALF_UP)
+          .multiply(BigDecimal.valueOf(100));
+    }
+
+    return new IndexPerformanceDto(
+        current.getIndexInfo().getId(),
+        current.getIndexInfo().getIndexClassification(),
+        current.getIndexInfo().getIndexName(),
+        versus.doubleValue(),
+        fluctuationRate.doubleValue(),
+        currentPrice.doubleValue(),
+        beforePrice.doubleValue()
+    );
   }
 
   private LocalDate resolveTargetDate(LocalDate today, PeriodType periodType) {
@@ -165,10 +151,10 @@ public class IndexDataServiceImpl implements IndexDataService {
       case DAILY -> today.minusDays(1);
       case WEEKLY -> today.minusWeeks(1);
       case MONTHLY -> today.minusMonths(1);
-      default -> today.minusDays(1);
     };
   }
 
+  // 지금은 평균 평일 일수로 계산하였지만 추후 요구사항에 맞추어 수정예정
   private int resolveFetchDays(PeriodType periodType) {
     return switch (periodType) {
       case DAILY -> 1;
@@ -181,10 +167,6 @@ public class IndexDataServiceImpl implements IndexDataService {
     LocalDate endDate = LocalDate.now();
     LocalDate startDate = endDate.minusDays(fetchDays + 30);
     return indexDataRepository.findChartRawData(id, startDate, endDate);
-  }
-
-  private boolean hasEnoughData(int currentIndex, int period, int totalSize) {
-    return currentIndex + period <= totalSize;
   }
 
   private double calculateMovingAverage(List<IndexData> rawData, int startIndex, int period) {
