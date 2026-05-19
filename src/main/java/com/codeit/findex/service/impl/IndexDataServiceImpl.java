@@ -29,27 +29,15 @@ public class IndexDataServiceImpl implements IndexDataService {
     IndexInfo indexInfo = indexInfoRepository.findById(id)
         .orElseThrow(() -> new IllegalArgumentException("지수 정보가 존재하지 않습니다."));
 
-    // 날짜 계산 로직 생각중입니다 일단은 하드코딩
-    int fetchDays = switch (periodType) {
-      case DAILY -> 1;
-      case WEEKLY -> 7;
-      case MONTHLY -> 22;
-    };
-
-    LocalDate endDate = LocalDate.now();
-    LocalDate startDate = endDate.minusDays(fetchDays + 30);
-
-    List<IndexData> rawData = indexDataRepository.findChartRawData(id, startDate, endDate);
+    int fetchDays = resolveFetchDays(periodType);
+    List<IndexData> rawData = fetchRawData(id, fetchDays);
 
     List<ChartDataPoint> dataPoints = new ArrayList<>();
     List<ChartDataPoint> ma5DataPoints = new ArrayList<>();
     List<ChartDataPoint> ma20DataPoints = new ArrayList<>();
 
-    // 데이터가 요청한 fetchDays보다 적을 수 있으므로 안전장치 마련
     int limit = Math.min(fetchDays, rawData.size());
 
-    // 과거(limit - 1)부터 최신(0)으로 거꾸로 루프를 돕니다
-    // 결과 리스트(dataPoints)에는 차트용 ASC(과거->최신) 순서로 쌓입니다
     for (int i = limit - 1; i >= 0; i--) {
       IndexData current = rawData.get(i);
       String dateStr = current.getBaseDate().toString();
@@ -58,22 +46,12 @@ public class IndexDataServiceImpl implements IndexDataService {
         dataPoints.add(new ChartDataPoint(dateStr, current.getClosingPrice().doubleValue()));
       }
 
-      if (i + 5 <= rawData.size()) {
-        double avg5 = rawData.subList(i, i + 5).stream()
-            .map(IndexData::getClosingPrice)
-            .filter(Objects::nonNull)
-            .mapToDouble(BigDecimal::doubleValue)
-            .summaryStatistics().getAverage();
-        ma5DataPoints.add(new ChartDataPoint(dateStr, avg5));
+      if (hasEnoughData(i, 5, rawData.size())) {
+        ma5DataPoints.add(new ChartDataPoint(dateStr, calculateMovingAverage(rawData, i, 5)));
       }
 
-      if (i + 20 <= rawData.size()) {
-        double avg20 = rawData.subList(i, i + 20).stream()
-            .map(IndexData::getClosingPrice)
-            .filter(Objects::nonNull)
-            .mapToDouble(BigDecimal::doubleValue)
-            .summaryStatistics().getAverage();
-        ma20DataPoints.add(new ChartDataPoint(dateStr, avg20));
+      if (hasEnoughData(i, 20, rawData.size())) {
+        ma20DataPoints.add(new ChartDataPoint(dateStr, calculateMovingAverage(rawData, i, 20)));
       }
     }
 
@@ -189,5 +167,31 @@ public class IndexDataServiceImpl implements IndexDataService {
       case MONTHLY -> today.minusMonths(1);
       default -> today.minusDays(1);
     };
+  }
+
+  private int resolveFetchDays(PeriodType periodType) {
+    return switch (periodType) {
+      case DAILY -> 1;
+      case WEEKLY -> 7;
+      case MONTHLY -> 22;
+    };
+  }
+
+  private List<IndexData> fetchRawData(UUID id, int fetchDays) {
+    LocalDate endDate = LocalDate.now();
+    LocalDate startDate = endDate.minusDays(fetchDays + 30);
+    return indexDataRepository.findChartRawData(id, startDate, endDate);
+  }
+
+  private boolean hasEnoughData(int currentIndex, int period, int totalSize) {
+    return currentIndex + period <= totalSize;
+  }
+
+  private double calculateMovingAverage(List<IndexData> rawData, int startIndex, int period) {
+    return rawData.subList(startIndex, startIndex + period).stream()
+        .map(IndexData::getClosingPrice)
+        .filter(Objects::nonNull)
+        .mapToDouble(BigDecimal::doubleValue)
+        .summaryStatistics().getAverage();
   }
 }
