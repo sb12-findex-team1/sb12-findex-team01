@@ -7,3 +7,8 @@ spring:
     username: findex_user
     password: findex1234
     driver-class-name: org.postgresql.Driver
+
+findex:
+  auto-sync:
+    cron: "0 0 0 * * *"   # 초 분 시 일 월 요일
+    zone: "Asia/Seoul"
