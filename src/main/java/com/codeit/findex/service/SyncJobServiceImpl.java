@@ -11,6 +11,7 @@ import com.codeit.findex.entity.SyncJob;
 import com.codeit.findex.repository.IndexInfoRepository;
 import com.codeit.findex.repository.SyncJobRepository;
 
+import java.util.ArrayList;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -34,7 +35,10 @@ public class SyncJobServiceImpl implements SyncJobService {
 
   @Transactional
   @Override
-  public void syncIndexData(IndexDataSyncRequest request) {
+  public List<SyncJobDto> syncIndexData(IndexDataSyncRequest request) {
+
+    List<SyncJobDto> result = new ArrayList<>();
+
     for (UUID indexInfoId : request.indexInfoIds()) {
       for (LocalDate date = request.baseDateFrom();
           !date.isAfter(request.baseDateTo());
@@ -43,7 +47,6 @@ public class SyncJobServiceImpl implements SyncJobService {
         IndexInfo indexInfo = indexInfoRepository.findById(indexInfoId)
             .orElseThrow(() ->
                 new IllegalArgumentException("indexInfo 없음"));
-
 
         SyncJob syncJob = SyncJob.builder()
             .indexInfo(indexInfo)
@@ -54,9 +57,13 @@ public class SyncJobServiceImpl implements SyncJobService {
             .result(Result.SUCCESS)
             .build();
 
-        syncJobRepository.save(syncJob);
+        SyncJob savedSyncJob = syncJobRepository.save(syncJob);
+
+        result.add(toDto(savedSyncJob));
       }
     }
+
+    return result;
   }
 
   @Transactional(readOnly = true)
