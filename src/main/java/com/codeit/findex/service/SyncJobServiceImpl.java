@@ -1,6 +1,7 @@
 package com.codeit.findex.service;
 
 import com.codeit.findex.dto.syncJob.IndexDataSyncRequest;
+import com.codeit.findex.dto.syncJob.SyncJobDto;
 import com.codeit.findex.entity.JobType;
 import com.codeit.findex.entity.Result;
 import com.codeit.findex.entity.SyncJob;
@@ -8,6 +9,7 @@ import com.codeit.findex.repository.SyncJobRepository;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -38,4 +40,21 @@ public class SyncJobServiceImpl implements SyncJobService {
       }
     }
   }
+
+  @Override
+  public List<SyncJobDto> findAll() {
+    return syncJobRepository.findAll().stream()
+        .map(syncJob -> new SyncJobDto(
+            syncJob.getId(),
+            syncJob.getJobType().name(),
+            null, // IndexInfoId, TODO: IndexInfo 연결 후 수정
+            syncJob.getTargetDate(),
+            syncJob.getWorker(),
+            syncJob.getJobTime(),
+            syncJob.getResult().name()
+        ))
+        .toList();
+  }
+
+
 }
