@@ -1,24 +1,24 @@
 package com.codeit.findex.controller;
 
-
+import com.codeit.findex.dto.indexinfo.IndexInfoListResponse;
 import com.codeit.findex.dto.indexinfo.IndexInfoCreateRequest;
 import com.codeit.findex.dto.indexinfo.IndexInfoResponse;
-
+import com.codeit.findex.dto.indexinfo.IndexInfoSearchRequest;
 import com.codeit.findex.dto.indexinfo.IndexInfoUpdateRequest;
-import com.codeit.findex.service.impl.IndexInfoServiceImpl;
+import com.codeit.findex.service.IndexInfoService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/index-infos")
 public class IndexInfoController {
 
-  private final IndexInfoServiceImpl indexInfoService;
+  private final IndexInfoService indexInfoService;
 
   @PostMapping
   public ResponseEntity<IndexInfoResponse> create(@RequestBody IndexInfoCreateRequest request) {
@@ -50,4 +50,12 @@ public class IndexInfoController {
     return ResponseEntity.noContent().build();
   }
 
+  @GetMapping
+  public ResponseEntity<IndexInfoListResponse<IndexInfoResponse>> findAll(
+      @ModelAttribute IndexInfoSearchRequest request,
+      @RequestParam(required = false) String cursor,
+      @RequestParam(required = false) UUID idAfter,
+      @RequestParam(defaultValue = "10") int size) {
+    return ResponseEntity.ok(indexInfoService.findAll(request, cursor, idAfter, size));
+  }
 }
