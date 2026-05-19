@@ -1,6 +1,8 @@
 package com.codeit.findex.entity;
 
+import com.codeit.findex.dto.indexinfo.IndexInfoUpdateRequest;
 import com.codeit.findex.entity.base.BaseEntity;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -77,6 +79,7 @@ public class IndexInfo extends BaseEntity {
   )
   private List<SyncJob> syncJobs = new ArrayList<>();
 
+  @JsonManagedReference
   @OneToOne(
       mappedBy = "indexInfo",
       fetch = FetchType.LAZY,
@@ -84,4 +87,11 @@ public class IndexInfo extends BaseEntity {
       orphanRemoval = true
   )
   private AutoSync autoSync;
+
+  public void update(IndexInfoUpdateRequest request) {
+    this.employedItemsCount = request.employedItemsCount();
+    this.basePointInTime = request.basePointInTime();
+    this.baseIndex = request.baseIndex();
+    this.favorite = request.favorite();
+  }
 }
