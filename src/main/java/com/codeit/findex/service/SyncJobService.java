@@ -8,6 +8,8 @@ import java.util.List;
 
 public interface SyncJobService {
 
+  List<SyncJobDto> syncIndexInfos();
+
   List<SyncJobDto> syncIndexData(IndexDataSyncRequest request);
 
   SyncJobListResponse findAll(SyncJobSearchRequest request);

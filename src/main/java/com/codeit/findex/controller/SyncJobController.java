@@ -25,6 +25,14 @@ public class SyncJobController {
 
   private final SyncJobService syncJobService;
 
+  @PostMapping("/index-infos")
+  public ResponseEntity<List<SyncJobDto>> syncIndexInfod() {
+    List<SyncJobDto> result = syncJobService.syncIndexInfos();
+    return ResponseEntity
+        .status(HttpStatus.ACCEPTED)
+        .body(result);
+  }
+
   @PostMapping("/index-data")
   public ResponseEntity<List<SyncJobDto>> syncIndexData(
       @Valid

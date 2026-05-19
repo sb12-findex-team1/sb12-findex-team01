@@ -33,6 +33,31 @@ public class SyncJobServiceImpl implements SyncJobService {
   private final IndexInfoRepository indexInfoRepository;
 
 
+  @Override
+  public List<SyncJobDto> syncIndexInfos() {
+
+    List<SyncJobDto> result = new ArrayList<>();
+
+    List<IndexInfo> indexInfos = indexInfoRepository.findAll();
+
+    for (IndexInfo indexInfo : indexInfos) {
+      SyncJob syncJob = SyncJob.builder()
+          .indexInfo(indexInfo)
+          .jobType(JobType.INDEX_INFO)
+          .targetDate(LocalDate.now())
+          .worker("127.0.0.1")
+          .jobTime(Instant.now())
+          .result(Result.SUCCESS)
+          .build();
+
+      SyncJob savedSyncJob = syncJobRepository.save(syncJob);
+
+      result.add(toDto(savedSyncJob));
+    }
+
+    return result;
+  }
+
   @Transactional
   @Override
   public List<SyncJobDto> syncIndexData(IndexDataSyncRequest request) {
