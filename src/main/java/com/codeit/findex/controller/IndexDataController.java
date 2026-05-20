@@ -76,7 +76,7 @@ public class IndexDataController {
   @GetMapping("/{id}/chart")
   public ResponseEntity<IndexChartDto> getIndexChart(
       @PathVariable UUID id,
-      @RequestParam(defaultValue = "DAILY") PeriodType periodType
+      @RequestParam(defaultValue = "MONTHLY") PeriodType periodType
   ) {
     IndexChartDto response = indexDataService.getChartData(id, periodType);
     return ResponseEntity.ok(response);
