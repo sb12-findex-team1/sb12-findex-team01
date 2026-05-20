@@ -1,21 +1,17 @@
 package com.codeit.findex.service.impl;
 
 import com.codeit.findex.client.IndexApiClient;
-import com.codeit.findex.dto.indexdata.IndexDataSyncRequest;
 import com.codeit.findex.dto.client.StockMarketIndexRequest;
 import com.codeit.findex.dto.client.StockMarketIndexResponse;
 import com.codeit.findex.dto.client.StockMarketIndexResponse.Item;
-import com.codeit.findex.dto.syncjob.SyncJobDto;
+import com.codeit.findex.dto.indexdata.IndexDataSyncRequest;
 import com.codeit.findex.entity.IndexData;
 import com.codeit.findex.entity.IndexInfo;
-import com.codeit.findex.entity.JobType;
-import com.codeit.findex.entity.Result;
 import com.codeit.findex.entity.SourceType;
 import com.codeit.findex.repository.IndexDataRepository;
 import com.codeit.findex.repository.IndexInfoRepository;
 import com.codeit.findex.service.ClientIndexSyncService;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -23,7 +19,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -40,62 +35,47 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
 
   @Transactional
   @Override
-  public List<SyncJobDto> syncIndexInfo(StockMarketIndexRequest request, SourceType sourceType, String ip) {
+  public List<IndexInfo> syncIndexInfo(
+      StockMarketIndexRequest request,
+      SourceType sourceType,
+      String ip
+  ) {
     StockMarketIndexResponse response = indexApiClient.getStockMarketIndex(request);
+    validateStockMarketIndexResponse(response);
+
     List<Item> items = response.response().body().items().item();
-//    방어검증 추가?
 
-    List<IndexInfo> savedIndexInfoList = saveIndexInfos(items, sourceType);
-
-    return savedIndexInfoList.stream()
-        .map(indexInfo -> createSyncJobDto(
-            indexInfo.getId(),
-            JobType.INDEX_INFO,
-            indexInfo,
-            LocalDate.now(),
-            ip,
-            Result.SUCCESS
-        ))
-        .toList();
+    return saveIndexInfos(items, sourceType);
   }
 
-//  TODO: 현재 api요청을 반복문으로 일단 처리.(name, icf)의 세트 검증으로, 최적화는 PR하고
+  //  TODO: 현재 api요청을 반복문으로 일단 처리.(name, icf)의 세트 검증으로, 최적화는 PR하고
   @Override
-  public List<SyncJobDto> syncIndexData(IndexDataSyncRequest request, String ip) {
-    validate(request);
+  public List<IndexData> syncIndexData(IndexDataSyncRequest request, String ip) {
+    validateIndexDataSyncRequest(request);
 
     List<IndexInfo> indexInfos = getTargetIndexInfos(request);
-    List<SyncJobDto> syncJobDtoList = new ArrayList<>();
+    List<IndexData> indexDataList = new ArrayList<>();
 
-//    result를 활용하기 위해 transactional 제거 후 try-catch 사용
     for (IndexInfo indexInfo : indexInfos) {
-      try {
-        StockMarketIndexRequest stockMarketIndexRequest = createIndexDataRequest(request, indexInfo);
-        StockMarketIndexResponse response = indexApiClient.getStockMarketIndex(stockMarketIndexRequest);
-        List<Item> items = response.response().body().items().item();
+      StockMarketIndexRequest stockMarketIndexRequest =
+          createIndexDataRequest(request, indexInfo);
 
-        List<IndexData> indexDataList = updateOrInsertIndexData(items, indexInfo);
+      StockMarketIndexResponse response =
+          indexApiClient.getStockMarketIndex(stockMarketIndexRequest);
+      validateStockMarketIndexResponse(response);
 
-        for (IndexData indexData : indexDataList) {
-          SyncJobDto syncJobDto = createSyncJobDto(
-              indexData.getId(),
-              JobType.INDEX_DATA,
-              indexInfo,
-              indexData.getBaseDate(),
-              ip,
-              Result.SUCCESS
-          );
-          syncJobDtoList.add(syncJobDto);
-        }
-      } catch (Exception e) {
-        syncJobDtoList.addAll(createFailedSyncJobDtos(indexInfo, request, ip));
-      }
+      List<Item> items = response.response().body().items().item();
+
+      List<IndexData> savedIndexData =
+          updateOrInsertIndexData(items, indexInfo);
+
+      indexDataList.addAll(savedIndexData);
     }
 
-    return syncJobDtoList;
+    return indexDataList;
   }
 
-  private void validate(IndexDataSyncRequest request) {
+  private void validateIndexDataSyncRequest(IndexDataSyncRequest request) {
     if (request == null
         || request.baseDateFrom() == null
         || request.baseDateTo() == null) {
@@ -107,8 +87,32 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
     }
   }
 
-//  프론트에서 전달할 경우 분류를 한 경우만 보낸다.
-//  그리고 OPEN_API만 자동 업데이트.
+  private void validateStockMarketIndexResponse(StockMarketIndexResponse response) {
+    if (response == null || response.response() == null) {
+      throw new IllegalStateException("Open API 응답이 비어 있습니다.");
+    }
+
+    StockMarketIndexResponse.Response apiResponse = response.response();
+    if (apiResponse.header() == null) {
+      throw new IllegalStateException("Open API 응답 헤더가 없습니다.");
+    }
+
+//    [resultCode=00, resultMsg=NORMAL SERVICE.] 공공데이터의 response
+    String resultCode = apiResponse.header().resultCode();
+    if (!"00".equals(resultCode)) {
+      throw new IllegalStateException(
+          "Open API 요청 실패: " + apiResponse.header().resultMsg()
+      );
+    }
+
+    StockMarketIndexResponse.Body body = apiResponse.body();
+    if (body == null || body.items() == null || body.items().item() == null) {
+      throw new IllegalStateException("Open API 응답 데이터가 없습니다.");
+    }
+  }
+
+  //  프론트에서 전달할 경우 분류를 한 경우만 보낸다.
+  //  그리고 OPEN_API만 자동 업데이트.
   private List<IndexInfo> getTargetIndexInfos(IndexDataSyncRequest request) {
     List<IndexInfo> indexInfos;
 
@@ -207,7 +211,7 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
     return indexClassification + "|" + indexName;
   }
 
-//  N+1
+  //  TODO:N+1
   private List<IndexData> updateOrInsertIndexData(List<Item> items, IndexInfo indexInfo) {
     Map<LocalDate, IndexData> indexDataMap = new LinkedHashMap<>();
 
@@ -258,48 +262,6 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
         .tradingPrice(Long.parseLong(item.trPrc()))
         .marketTotalAmount(Long.parseLong(item.lstgMrktTotAmt()))
         .build();
-  }
-
-  private SyncJobDto createSyncJobDto(
-      UUID id,
-      JobType jobType,
-      IndexInfo indexInfo,
-      LocalDate targetDate,
-      String worker,
-      Result result
-  ) {
-    return new SyncJobDto(
-        id,
-        jobType,
-        indexInfo.getId(),
-        targetDate,
-        worker,
-        Instant.now(),
-        result
-    );
-  }
-
-  private List<SyncJobDto> createFailedSyncJobDtos(
-      IndexInfo indexInfo,
-      IndexDataSyncRequest request,
-      String ip
-  ) {
-    List<SyncJobDto> syncJobDtos = new ArrayList<>();
-    LocalDate date = request.baseDateFrom();
-
-    while (!date.isAfter(request.baseDateTo())) {
-      syncJobDtos.add(createSyncJobDto(
-          null,
-          JobType.INDEX_DATA,
-          indexInfo,
-          date,
-          ip,
-          Result.FAILED
-      ));
-      date = date.plusDays(1);
-    }
-
-    return syncJobDtos;
   }
 
   private StockMarketIndexRequest createIndexDataRequest(

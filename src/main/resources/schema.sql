@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS auto_sync_configs;
+DROP TABLE IF EXISTS auto_sync;
 DROP TABLE IF EXISTS sync_jobs;
 DROP TABLE IF EXISTS index_data;
 DROP TABLE IF EXISTS index_infos;
@@ -49,7 +49,7 @@ CREATE TABLE sync_jobs
 	id             uuid PRIMARY KEY,
 	index_info_id  uuid                     NOT NULL,
 	job_type       varchar(50)              NOT NULL,
-	target_date    date                     NOT NULL,
+	target_date    date                     NULL,
 	worker         varchar(100)             NOT NULL,
 	job_time       TIMESTAMP WITH TIME ZONE NOT NULL,
 	result         varchar(50)              NOT NULL,

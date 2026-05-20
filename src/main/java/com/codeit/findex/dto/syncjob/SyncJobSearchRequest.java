@@ -1,4 +1,4 @@
-package com.codeit.findex.dto.syncJob;
+package com.codeit.findex.dto.syncjob;
 
 import java.time.Instant;
 import java.time.LocalDate;
