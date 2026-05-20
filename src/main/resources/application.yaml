@@ -16,7 +16,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
       # create, create-drop, update, validate, none
     show-sql: true
     properties:
