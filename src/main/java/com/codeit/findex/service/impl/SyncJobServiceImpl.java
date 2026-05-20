@@ -11,6 +11,7 @@ import com.codeit.findex.entity.JobType;
 import com.codeit.findex.entity.Result;
 import com.codeit.findex.entity.SourceType;
 import com.codeit.findex.entity.SyncJob;
+import com.codeit.findex.repository.AutoSyncRepository;
 import com.codeit.findex.repository.SyncJobRepository;
 import com.codeit.findex.service.ClientIndexSyncService;
 import com.codeit.findex.service.SyncJobService;
