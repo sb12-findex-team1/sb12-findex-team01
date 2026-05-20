@@ -24,6 +24,11 @@ public class IndexDataServiceImpl implements IndexDataService {
   private final IndexDataRepository indexDataRepository;
   private final IndexInfoRepository indexInfoRepository;
 
+  private record PerformanceContext(
+      List<IndexData> currentDataList,
+      Map<UUID, IndexData> beforeMap
+  ) {}
+
   @Override
   public IndexChartDto getChartData(UUID id, PeriodType periodType) {
     IndexInfo indexInfo = indexInfoRepository.findById(id)
@@ -68,22 +73,11 @@ public class IndexDataServiceImpl implements IndexDataService {
 
   @Override
   public List<RankedIndexPerformanceDto> getPerformanceRanking(UUID indexInfoId, PeriodType periodType, int limit) {
-    LocalDate today = LocalDate.now();
-    LocalDate targetDate = resolveTargetDate(today, periodType);
-
-    LocalDate actualBeforeDate = indexDataRepository.findLatestAvailableDate(targetDate)
-        .orElseThrow(() -> new IllegalArgumentException("비교할 과거 데이터가 존재하지 않습니다."));
-
-    List<IndexData> currentDataList = indexDataRepository.findByBaseDateWithIndexInfo(today);
-    List<IndexData> beforeDataList = indexDataRepository.findByBaseDateWithIndexInfo(actualBeforeDate);
-
-    Map<UUID, IndexData> beforeMap = beforeDataList.stream()
-        .collect(Collectors.toMap(d -> d.getIndexInfo().getId(), d -> d));
+    PerformanceContext context = preparePerformanceContext(periodType);
 
     List<IndexPerformanceDto> performances = new ArrayList<>();
-
-    for (IndexData current : currentDataList) {
-      IndexData before = beforeMap.get(current.getIndexInfo().getId());
+    for (IndexData current : context.currentDataList()) {
+      IndexData before = context.beforeMap().get(current.getIndexInfo().getId());
 
       if (before != null && current.getClosingPrice() != null) {
         performances.add(convertToPerformanceDto(current, before));
@@ -102,25 +96,35 @@ public class IndexDataServiceImpl implements IndexDataService {
 
   @Override
   public List<IndexPerformanceDto> getPerformanceFavorite(PeriodType periodType) {
-    LocalDate today = LocalDate.now();
-    LocalDate targetDate = resolveTargetDate(today, periodType);
+    PerformanceContext context = preparePerformanceContext(periodType);
+
+    return context.currentDataList().stream()
+        .filter(d -> d.getIndexInfo() != null && d.getIndexInfo().isFavorite())
+        .map(current -> {
+          IndexData before = context.beforeMap().get(current.getIndexInfo().getId());
+          return convertToPerformanceDto(current, before);
+        })
+        .toList();
+  }
+
+  private PerformanceContext preparePerformanceContext(PeriodType periodType) {
+    LocalDate realToday = LocalDate.now();
+
+    LocalDate actualToday = indexDataRepository.findLatestAvailableDate(realToday)
+        .orElseThrow(() -> new IllegalArgumentException("현재 기준 조회 가능한 데이터가 존재하지 않습니다."));
+
+    LocalDate targetDate = resolveTargetDate(actualToday, periodType);
 
     LocalDate actualBeforeDate = indexDataRepository.findLatestAvailableDate(targetDate)
         .orElseThrow(() -> new IllegalArgumentException("비교할 과거 데이터가 존재하지 않습니다."));
 
-    List<IndexData> currentDataList = indexDataRepository.findByBaseDateWithIndexInfo(today);
+    List<IndexData> currentDataList = indexDataRepository.findByBaseDateWithIndexInfo(actualToday);
     List<IndexData> beforeDataList = indexDataRepository.findByBaseDateWithIndexInfo(actualBeforeDate);
 
     Map<UUID, IndexData> beforeMap = beforeDataList.stream()
         .collect(Collectors.toMap(d -> d.getIndexInfo().getId(), d -> d));
 
-    return currentDataList.stream()
-        .filter(d -> d.getIndexInfo() != null && d.getIndexInfo().isFavorite())
-        .map(current -> {
-          IndexData before = beforeMap.get(current.getIndexInfo().getId());
-          return convertToPerformanceDto(current, before);
-        })
-        .toList();
+    return new PerformanceContext(currentDataList, beforeMap);
   }
 
   private IndexPerformanceDto convertToPerformanceDto(IndexData current, IndexData before) {
