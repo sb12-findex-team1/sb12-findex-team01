@@ -14,7 +14,7 @@ public interface SyncJobRepository extends JpaRepository<SyncJob, UUID> {
       select max(s.targetDate)
       from SyncJob s
       where s.indexInfo.id = :indexInfoId
-        and s.jobType = 'AUTO'
+        and s.jobType = 'INDEX_DATA'
         and s.result = 'SUCCESS'
       """)
   Optional<LocalDate> findLastSuccessfulAutoSyncDate(
