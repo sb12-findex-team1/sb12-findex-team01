@@ -3,9 +3,12 @@ package com.codeit.findex.repository;
 import com.codeit.findex.entity.Result;
 import com.codeit.findex.entity.SyncJob;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface SyncJobRepository extends JpaRepository<SyncJob, UUID> {
   long countByResultAndJobTimeAfter (
