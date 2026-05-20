@@ -37,3 +37,9 @@ public-data:
     derivation-product-market-index-path: /getDerivationProductMarketIndex
     service-key: ${PUBLIC_DATA_SERVICE_KEY:}
     result-type: json
+
+findex:
+  auto-sync:
+    cron: "0 0 0 * * *"   # 초 분 시 일 월 요일
+    zone: "Asia/Seoul"
+
