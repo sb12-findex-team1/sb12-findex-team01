@@ -45,7 +45,7 @@ public class IndexDataController {
   private final IndexDataService indexDataService;
   private final IndexDataCsvExporter csvExporter;
 
-  @PatchMapping
+  @PutMapping
   @Operation(summary = "지수 데이터 등록")
   public ResponseEntity<IndexDataResponse> create(
       @RequestBody @Valid IndexDataCreateRequest request) {
@@ -53,7 +53,7 @@ public class IndexDataController {
         .body(indexDataService.create(request));
   }
 
-  @PutMapping("/{id}")
+  @PatchMapping("/{id}")
   @Operation(summary = "지수 데이터 수정")
   public ResponseEntity<IndexDataResponse> update(
       @PathVariable UUID id,
