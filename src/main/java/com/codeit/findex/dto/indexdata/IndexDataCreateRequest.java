@@ -8,7 +8,6 @@ import java.util.UUID;
 public record IndexDataCreateRequest(
     @NotNull UUID indexInfoId,
     @NotNull LocalDate baseDate,
-    BigDecimal openingPrice,
     BigDecimal marketPrice,
     BigDecimal closingPrice,
     BigDecimal highPrice,
