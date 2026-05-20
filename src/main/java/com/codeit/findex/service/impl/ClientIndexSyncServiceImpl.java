@@ -5,9 +5,11 @@ import com.codeit.findex.dto.client.StockMarketIndexRequest;
 import com.codeit.findex.dto.client.StockMarketIndexResponse;
 import com.codeit.findex.dto.client.StockMarketIndexResponse.Item;
 import com.codeit.findex.dto.indexdata.IndexDataSyncRequest;
+import com.codeit.findex.entity.AutoSync;
 import com.codeit.findex.entity.IndexData;
 import com.codeit.findex.entity.IndexInfo;
 import com.codeit.findex.entity.SourceType;
+import com.codeit.findex.repository.AutoSyncRepository;
 import com.codeit.findex.repository.IndexDataRepository;
 import com.codeit.findex.repository.IndexInfoRepository;
 import com.codeit.findex.service.ClientIndexSyncService;
@@ -19,6 +21,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -32,6 +35,7 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
   private final IndexApiClient indexApiClient;
   private final IndexInfoRepository indexInfoRepository;
   private final IndexDataRepository indexDataRepository;
+  private final AutoSyncRepository autoSyncRepository;
 
   @Transactional
   @Override
@@ -172,7 +176,16 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
     }
 
     if (!newIndexInfos.isEmpty()) {
-      indexInfoRepository.saveAll(newIndexInfos);
+      List<IndexInfo> savedIndexInfos = indexInfoRepository.saveAll(newIndexInfos);
+
+      List<AutoSync> autoSyncs = savedIndexInfos.stream()
+          .map(indexInfo -> AutoSync.builder()
+              .indexInfo(indexInfo)
+              .enabled(false)
+              .build())
+          .collect(Collectors.toList());
+
+      autoSyncRepository.saveAll(autoSyncs);
     }
 
     return result;

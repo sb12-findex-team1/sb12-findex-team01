@@ -87,9 +87,9 @@ public class IndexInfo extends BaseEntity {
   }
 
   public void update(IndexInfoUpdateRequest request) {
-    this.employedItemsCount = request.employedItemsCount();
-    this.basePointInTime = request.basePointInTime();
-    this.baseIndex = request.baseIndex();
+    if (request.employedItemsCount() != null) this.employedItemsCount = request.employedItemsCount();
+    if (request.basePointInTime() != null) this.basePointInTime = request.basePointInTime();
+    if (request.baseIndex() != null) this.baseIndex = request.baseIndex();
     this.favorite = request.favorite();
   }
 }

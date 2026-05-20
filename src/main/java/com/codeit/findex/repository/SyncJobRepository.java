@@ -14,4 +14,16 @@ public interface SyncJobRepository extends JpaRepository<SyncJob, UUID> {
   );
 
   Optional<SyncJob> findTopByOrderByJobTimeDesc();
+
+  @Query("""
+      select max(s.targetDate)
+      from SyncJob s
+      where s.indexInfo.id = :indexInfoId
+        and s.jobType = 'INDEX_DATA'
+        and s.result = 'SUCCESS'
+      """)
+  Optional<LocalDate> findLastSuccessfulAutoSyncDate(
+      @Param("indexInfoId") UUID indexInfoId
+  );
+
 }
