@@ -1,5 +1,5 @@
 
-package com.codeit.findex.repository.impl;
+package com.codeit.findex.repository.querydsl;
 
 import com.codeit.findex.dto.indexdata.IndexDataSearchRequest;
 import com.codeit.findex.entity.IndexData;
