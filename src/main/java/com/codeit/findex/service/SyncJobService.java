@@ -5,6 +5,7 @@ import com.codeit.findex.dto.indexdata.IndexDataSyncRequest;
 import com.codeit.findex.dto.syncjob.SyncJobDto;
 import com.codeit.findex.dto.syncjob.SyncJobListResponse;
 import com.codeit.findex.dto.syncjob.SyncJobSearchRequest;
+import com.codeit.findex.dto.syncjob.SyncJobStatsDto;
 import java.util.List;
 
 public interface SyncJobService {
@@ -14,5 +15,7 @@ public interface SyncJobService {
   List<SyncJobDto> syncIndexData(IndexDataSyncRequest request, String ip);
 
   SyncJobListResponse findAll(SyncJobSearchRequest request);
+
+  SyncJobStatsDto getStats();
 
 }

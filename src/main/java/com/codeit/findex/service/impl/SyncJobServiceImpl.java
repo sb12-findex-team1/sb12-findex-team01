@@ -5,6 +5,7 @@ import com.codeit.findex.dto.indexdata.IndexDataSyncRequest;
 import com.codeit.findex.dto.syncjob.SyncJobDto;
 import com.codeit.findex.dto.syncjob.SyncJobListResponse;
 import com.codeit.findex.dto.syncjob.SyncJobSearchRequest;
+import com.codeit.findex.dto.syncjob.SyncJobStatsDto;
 import com.codeit.findex.entity.IndexData;
 import com.codeit.findex.entity.IndexInfo;
 import com.codeit.findex.entity.JobType;
@@ -18,6 +19,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -363,6 +365,24 @@ public class SyncJobServiceImpl implements SyncJobService {
     }
 
     return dto.jobTime().toString();
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public SyncJobStatsDto getStats() {
+    Instant from = Instant.now().minus(7, ChronoUnit.DAYS);
+
+    long totalSuccess =
+        syncJobRepository.countByResultAndJobTimeAfter(Result.SUCCESS, from);
+
+    long totalFaild =
+        syncJobRepository.countByResultAndJobTimeAfter(Result.FAILED, from);
+
+    Instant latestSync = syncJobRepository.findTopByOrderByJobTimeDesc()
+        .map(SyncJob::getJobTime)
+        .orElse(null);
+
+    return new SyncJobStatsDto(totalSuccess, totalFaild, latestSync);
   }
 
 }
