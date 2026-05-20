@@ -2,6 +2,8 @@ package com.codeit.findex.service.impl;
 
 import com.codeit.findex.entity.AutoSync;
 import com.codeit.findex.entity.IndexInfo;
+import com.codeit.findex.entity.JobType;
+import com.codeit.findex.entity.SyncJob;
 import com.codeit.findex.repository.AutoSyncRepository;
 import com.codeit.findex.repository.SyncJobRepository;
 import com.codeit.findex.service.AutoIndexDataSyncService;
@@ -80,6 +82,11 @@ public class AutoIndexDataSyncServiceImpl implements AutoIndexDataSyncService {
 
       //todo: 여기 api 연동 로직 추가 필요
 
+      //todo: worker 필드 값 뭐 들어가는지 체크 필요. + 연동 로직에 같이 저장하는지도 체크 필요
+      syncJobRepository.save(
+          SyncJob.success(indexInfo, JobType.INDEX_DATA, targetDate, "system")
+      );
+
       log.info(
           "[AutoSync] 지수 데이터 자동 연동 성공. indexInfoId={}, targetDate={}",
           indexInfo.getId(),
@@ -87,6 +94,10 @@ public class AutoIndexDataSyncServiceImpl implements AutoIndexDataSyncService {
       );
 
     } catch (Exception e) {
+      syncJobRepository.save(
+          SyncJob.failed(indexInfo, JobType.INDEX_DATA, targetDate, "system")
+      );
+
       log.error(
           "[AutoSync] 지수 데이터 자동 연동 실패. indexInfoId={}, targetDate={}",
           indexInfo.getId(),
@@ -95,6 +106,5 @@ public class AutoIndexDataSyncServiceImpl implements AutoIndexDataSyncService {
       );
     }
   }
-
 
 }
