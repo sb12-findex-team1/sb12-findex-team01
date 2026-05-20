@@ -2,6 +2,10 @@ package com.codeit.findex.service.impl;
 
 import com.codeit.findex.dto.indexdata.ChartDataPoint;
 import com.codeit.findex.dto.indexdata.IndexChartDto;
+import com.codeit.findex.dto.indexdata.IndexDataCreateRequest;
+import com.codeit.findex.dto.indexdata.IndexDataResponse;
+import com.codeit.findex.dto.indexdata.IndexDataSearchRequest;
+import com.codeit.findex.dto.indexdata.IndexDataUpdateRequest;
 import com.codeit.findex.dto.indexdata.IndexPerformanceDto;
 import com.codeit.findex.dto.indexdata.RankedIndexPerformanceDto;
 import com.codeit.findex.entity.IndexData;
@@ -10,6 +14,7 @@ import com.codeit.findex.entity.PeriodType;
 import com.codeit.findex.repository.IndexDataRepository;
 import com.codeit.findex.repository.IndexInfoRepository;
 import com.codeit.findex.service.IndexDataService;
+import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -17,11 +22,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.codeit.findex.exception.DuplicateException;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +44,75 @@ public class IndexDataServiceImpl implements IndexDataService {
       List<IndexData> currentDataList,
       Map<UUID, IndexData> beforeMap
   ) {}
+
+  @Override
+  @Transactional
+  public IndexDataResponse create(IndexDataCreateRequest request) {
+    IndexInfo indexInfo = indexInfoRepository.findById(request.indexInfoId())
+        .orElseThrow(() -> new EntityNotFoundException("IndexInfo not found"));
+
+    if (indexDataRepository.existsByIndexInfoIdAndBaseDate(
+        request.indexInfoId(), request.baseDate())) {
+      throw new DuplicateException("이미 등록된 날짜의 데이터입니다.");
+    }
+
+    IndexData indexData = IndexData.builder()
+        .indexInfo(indexInfo)
+        .baseDate(request.baseDate())
+        .marketPrice(request.marketPrice())
+        .closingPrice(request.closingPrice())
+        .highPrice(request.highPrice())
+        .lowPrice(request.lowPrice())
+        .versus(request.versus())
+        .fluctuationRate(request.fluctuationRate())
+        .tradingQuantity(request.tradingQuantity())
+        .tradingPrice(request.tradingPrice())
+        .marketTotalAmount(request.marketTotalAmount())
+        .build();
+
+    return IndexDataResponse.from(indexDataRepository.save(indexData));
+  }
+
+  @Override
+  @Transactional
+  public IndexDataResponse update(UUID id, IndexDataUpdateRequest request) {
+    IndexData indexData = indexDataRepository.findById(id)
+        .orElseThrow(() -> new EntityNotFoundException("IndexData not found"));
+
+    indexData.update(
+        request.getMarketPrice(),
+        request.getClosingPrice(),
+        request.getHighPrice(),
+        request.getLowPrice(),
+        request.getVersus(),
+        request.getFluctuationRate(),
+        request.getTradingQuantity(),
+        request.getTradingPrice(),
+        request.getMarketTotalAmount()
+    );
+
+    return IndexDataResponse.from(indexData);
+  }
+
+  @Override
+  @Transactional
+  public void delete(UUID id) {
+    IndexData indexData = indexDataRepository.findById(id)
+        .orElseThrow(() -> new EntityNotFoundException("IndexData not found"));
+    indexDataRepository.delete(indexData);
+  }
+
+  @Override
+  public Optional search(IndexDataSearchRequest request) {
+    Pageable pageable = PageRequest.of(request.page(), request.size());
+    return indexDataRepository.search(request, pageable)
+        .map(IndexDataResponse::from);
+  }
+
+  @Override
+  public List<IndexData> findAllForExport(IndexDataSearchRequest request) {
+    return indexDataRepository.findAllForExport(request);
+  }
 
   @Override
   public IndexChartDto getChartData(UUID id, PeriodType periodType) {
@@ -80,7 +158,7 @@ public class IndexDataServiceImpl implements IndexDataService {
 
   @Override
   public List<RankedIndexPerformanceDto> getPerformanceRanking(UUID indexInfoId, PeriodType periodType, int limit) {
-    PerformanceContext context = preparePerformanceContext(periodType);
+    IndexDataServiceImpl.PerformanceContext context = preparePerformanceContext(periodType);
 
     List<IndexPerformanceDto> performances = new ArrayList<>();
     for (IndexData current : context.currentDataList()) {
