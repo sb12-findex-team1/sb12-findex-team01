@@ -16,8 +16,10 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
 @Service
@@ -34,7 +36,7 @@ public class AutoSyncServiceImpl implements AutoSyncService {
   @Override
   public AutoSyncUpdateResponse updateAutoSync(UUID id, AutoSyncUpdateRequest request) {
     AutoSync autoSync = autoSyncRepository.findById(id).orElseThrow(
-        () -> new IllegalArgumentException("autoSync 존재 안 함")
+        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "자동 연동 설정을 찾을 수 없습니다.")
     );
 
     if (request.enabled()) {
@@ -148,7 +150,7 @@ public class AutoSyncServiceImpl implements AutoSyncService {
     return switch (sortField) {
       case "indexInfo.indexName" -> "indexInfo.indexName";
       case "enabled" -> "enabled";
-      default -> throw new IllegalArgumentException("지원하지 않는 정렬 필드입니다: " + sortField);
+      default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "지원하지 않는 정렬 필드입니다: " + sortField);
     };
   }
 
@@ -160,7 +162,7 @@ public class AutoSyncServiceImpl implements AutoSyncService {
     return switch (sortDirection.toLowerCase()) {
       case "asc" -> Sort.Direction.ASC;
       case "desc" -> Sort.Direction.DESC;
-      default -> throw new IllegalArgumentException("지원하지 않는 정렬 방향입니다: " + sortDirection);
+      default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "지원하지 않는 정렬 방향입니다: " + sortDirection);
     };
   }
 
@@ -178,7 +180,7 @@ public class AutoSyncServiceImpl implements AutoSyncService {
       return Base64.getEncoder()
           .encodeToString(json.getBytes(StandardCharsets.UTF_8));
     } catch (Exception e) {
-      throw new IllegalArgumentException("커서 생성에 실패했습니다.", e);
+      throw new IllegalStateException("커서 생성에 실패했습니다.", e);
     }
   }
 
