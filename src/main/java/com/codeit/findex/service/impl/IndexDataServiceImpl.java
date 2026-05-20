@@ -81,15 +81,15 @@ public class IndexDataServiceImpl implements IndexDataService {
         .orElseThrow(() -> new EntityNotFoundException("IndexData not found"));
 
     indexData.update(
-        request.getMarketPrice(),
-        request.getClosingPrice(),
-        request.getHighPrice(),
-        request.getLowPrice(),
-        request.getVersus(),
-        request.getFluctuationRate(),
-        request.getTradingQuantity(),
-        request.getTradingPrice(),
-        request.getMarketTotalAmount()
+        request.marketPrice(),
+        request.closingPrice(),
+        request.highPrice(),
+        request.lowPrice(),
+        request.versus(),
+        request.fluctuationRate(),
+        request.tradingQuantity(),
+        request.tradingPrice(),
+        request.marketTotalAmount()
     );
 
     return IndexDataResponse.from(indexData);
