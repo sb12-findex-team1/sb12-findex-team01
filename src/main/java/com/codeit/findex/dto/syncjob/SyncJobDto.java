@@ -1,17 +1,19 @@
-package com.codeit.findex.dto.syncJob;
+package com.codeit.findex.dto.syncjob;
 
+import com.codeit.findex.entity.JobType;
+import com.codeit.findex.entity.Result;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
 public record SyncJobDto(
     UUID id,
-    String jobType,
+    JobType jobType,
     UUID indexInfoId,
     LocalDate targetDate,
     String worker,
     Instant jobTime,
-    String result
+    Result result
 ) {
 
 }
