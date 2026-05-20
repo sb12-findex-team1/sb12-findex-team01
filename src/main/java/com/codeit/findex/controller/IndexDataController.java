@@ -71,6 +71,7 @@ public class IndexDataController {
   ) {
     return ResponseEntity.ok(indexDataService.search(request));
   }
+
   // 지수 차트 조회
   @GetMapping("/{id}/chart")
   public ResponseEntity<IndexChartDto> getIndexChart(
