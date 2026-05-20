@@ -48,26 +48,4 @@ public class SyncJob extends BaseEntity {
   @Column(name = "result", nullable = false, length = 50)
   private Result result;
 
-  public static SyncJob success(IndexInfo indexInfo, JobType jobType, LocalDate targetDate, String worker) {
-    return SyncJob.builder()
-        .indexInfo(indexInfo)
-        .jobType(jobType)
-        .targetDate(targetDate)
-        .worker(worker)
-        .jobTime(Instant.now())
-        .result(Result.SUCCESS)
-        .build();
-  }
-
-  public static SyncJob failed(IndexInfo indexInfo, JobType jobType, LocalDate targetDate, String worker) {
-    return SyncJob.builder()
-        .indexInfo(indexInfo)
-        .jobType(jobType)
-        .targetDate(targetDate)
-        .worker(worker)
-        .jobTime(Instant.now())
-        .result(Result.FAILED)
-        .build();
-  }
-
 }
