@@ -1,7 +1,6 @@
 package com.codeit.findex.repository;
 
 import com.codeit.findex.entity.IndexData;
-import com.codeit.findex.entity.IndexInfo;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -30,5 +29,17 @@ public interface IndexDataRepository extends JpaRepository<IndexData, UUID> {
       "WHERE id.baseDate = :baseDate")
   List<IndexData> findByBaseDateWithIndexInfo(@Param("baseDate") LocalDate baseDate);
 
-  Optional<IndexData> findByIndexInfoAndBaseDate(IndexInfo indexInfo, LocalDate baseDate);
+
+  @Query("""
+      SELECT d
+      FROM IndexData d
+      JOIN FETCH d.indexInfo i
+      WHERE i.id IN :indexInfoIds
+        AND d.baseDate BETWEEN :startDate AND :endDate
+      """)
+  List<IndexData> findByIndexInfoIdInAndBaseDateBetween(
+      @Param("indexInfoIds") List<UUID> indexInfoIds,
+      @Param("startDate") LocalDate startDate,
+      @Param("endDate") LocalDate endDate
+  );
 }
