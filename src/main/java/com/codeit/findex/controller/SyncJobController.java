@@ -1,11 +1,12 @@
 package com.codeit.findex.controller;
 
-import com.codeit.findex.dto.syncJob.IndexDataSyncRequest;
-import com.codeit.findex.dto.syncJob.SyncJobDto;
-import com.codeit.findex.dto.syncJob.SyncJobListResponse;
-import com.codeit.findex.dto.syncJob.SyncJobSearchRequest;
+import com.codeit.findex.dto.client.StockMarketIndexRequest;
+import com.codeit.findex.dto.indexdata.IndexDataSyncRequest;
+import com.codeit.findex.dto.syncjob.SyncJobDto;
+import com.codeit.findex.dto.syncjob.SyncJobListResponse;
+import com.codeit.findex.dto.syncjob.SyncJobSearchRequest;
 import com.codeit.findex.service.SyncJobService;
-
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -26,8 +27,16 @@ public class SyncJobController {
   private final SyncJobService syncJobService;
 
   @PostMapping("/index-infos")
-  public ResponseEntity<List<SyncJobDto>> syncIndexInfod() {
-    List<SyncJobDto> result = syncJobService.syncIndexInfos();
+  public ResponseEntity<List<SyncJobDto>> syncIndexInfo(
+      HttpServletRequest httpRequest
+  ) {
+    String ip = httpRequest.getRemoteAddr();
+    if (ip.equals("0:0:0:0:0:0:0:1")) {
+      ip = "127.0.0.1";
+    }
+    StockMarketIndexRequest request = StockMarketIndexRequest.getIndexInfo();
+
+    List<SyncJobDto> result = syncJobService.syncIndexInfos(request, ip);
     return ResponseEntity
         .status(HttpStatus.ACCEPTED)
         .body(result);
@@ -37,10 +46,15 @@ public class SyncJobController {
   public ResponseEntity<List<SyncJobDto>> syncIndexData(
       @Valid
       @RequestBody
-      IndexDataSyncRequest request
+      IndexDataSyncRequest request,
+      HttpServletRequest httpRequest
   ) {
-
-    List<SyncJobDto> result = syncJobService.syncIndexData(request);
+    String ip = httpRequest.getRemoteAddr();
+    if (ip.equals("0:0:0:0:0:0:0:1")) {
+      ip = "127.0.0.1";
+    }
+    
+    List<SyncJobDto> result = syncJobService.syncIndexData(request, ip);
     return ResponseEntity
         .status(HttpStatus.ACCEPTED)
         .body(result);

@@ -1,4 +1,4 @@
-package com.codeit.findex.dto.syncJob;
+package com.codeit.findex.dto.indexdata;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -9,5 +9,4 @@ public record IndexDataSyncRequest(
     LocalDate baseDateFrom,
     LocalDate baseDateTo
 ) {
-
 }

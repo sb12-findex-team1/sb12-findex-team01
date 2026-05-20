@@ -1,6 +1,12 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
+
   application:
     name: sb12_findex_team1
+
+  profiles:
+    active: dev
 
   datasource:
     url: jdbc:postgresql://localhost:5432/findex
@@ -8,7 +14,32 @@ spring:
     password: findex1234
     driver-class-name: org.postgresql.Driver
 
+  jpa:
+    hibernate:
+      ddl-auto: validate
+      # create, create-drop, update, validate, none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+        use_sql_comments: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        physical_naming_strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+        jdbc.time_zone: UTC
+        open-in-view: false
+
+public-data:
+  index:
+    base-url: https://apis.data.go.kr/1160100/service/GetMarketIndexInfoService
+    stock-market-index-path: /getStockMarketIndex
+    bond-market-index-path: /getBondMarketIndex
+    derivation-product-market-index-path: /getDerivationProductMarketIndex
+    service-key: ${PUBLIC_DATA_SERVICE_KEY:}
+    result-type: json
+
 findex:
   auto-sync:
     cron: "0 0 0 * * *"   # 초 분 시 일 월 요일
     zone: "Asia/Seoul"
+

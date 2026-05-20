@@ -66,4 +66,26 @@ public class IndexData extends BaseEntity {
 
   @Column(name = "market_total_amount")
   private Long marketTotalAmount;
+
+  public void update(
+      BigDecimal marketPrice,
+      BigDecimal closingPrice,
+      BigDecimal highPrice,
+      BigDecimal lowPrice,
+      BigDecimal versus,
+      BigDecimal fluctuationRate,
+      Long tradingQuantity,
+      Long tradingPrice,
+      Long marketTotalAmount
+  ) {
+    this.marketPrice = marketPrice;
+    this.closingPrice = closingPrice;
+    this.highPrice = highPrice;
+    this.lowPrice = lowPrice;
+    this.versus = versus;
+    this.fluctuationRate = fluctuationRate;
+    this.tradingQuantity = tradingQuantity;
+    this.tradingPrice = tradingPrice;
+    this.marketTotalAmount = marketTotalAmount;
+  }
 }

@@ -35,7 +35,7 @@ public class SyncJob extends BaseEntity {
   @Column(name = "job_type", nullable = false, length = 50)
   private JobType jobType;
 
-  @Column(name = "target_date", nullable = false)
+  @Column(name = "target_date")
   private LocalDate targetDate;
 
   @Column(name = "worker", nullable = false, length = 100)
