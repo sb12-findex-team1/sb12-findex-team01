@@ -242,15 +242,19 @@ public class IndexDataServiceImpl implements IndexDataService {
       case DAILY -> today.minusDays(1);
       case WEEKLY -> today.minusWeeks(1);
       case MONTHLY -> today.minusMonths(1);
+      case QUARTERLY -> today.minusDays(1); // 기본값 일간으로 설정
+      case YEARLY -> today.minusDays(1); // 기본값 일간으로 설정
     };
   }
 
   // 지금은 평균 평일 일수로 계산하였지만 추후 요구사항에 맞추어 수정예정
   private int resolveFetchDays(PeriodType periodType) {
     return switch (periodType) {
-      case DAILY -> 1;
-      case WEEKLY -> 7;
+      case DAILY -> 22; // 차트 요청에는
+      case WEEKLY -> 22; // 일간, 주간 없기에 월간을 기본값으로
       case MONTHLY -> 22;
+      case QUARTERLY -> 66;
+      case YEARLY -> 264;
     };
   }
 
