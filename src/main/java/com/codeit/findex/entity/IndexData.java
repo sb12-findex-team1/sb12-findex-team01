@@ -1,6 +1,5 @@
 package com.codeit.findex.entity;
 
-import com.codeit.findex.dto.indexdata.IndexDataUpdateRequest;
 import com.codeit.findex.entity.base.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,6 +11,7 @@ import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -26,9 +26,10 @@ import lombok.experimental.SuperBuilder;
         )
     }
 )
-@ToString(callSuper = true, exclude = "indexInfo")
 @Getter
+@ToString(callSuper = true, exclude = "indexInfo")
 @SuperBuilder
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class IndexData extends BaseEntity {
 
@@ -39,25 +40,22 @@ public class IndexData extends BaseEntity {
   @Column(name = "base_date", nullable = false)
   private LocalDate baseDate;
 
-  @Column(name = "opening_price", precision = 10, scale = 2)
-  private BigDecimal openingPrice;
-
-  @Column(name = "market_price", precision = 20, scale = 2)
+  @Column(name = "market_price", precision = 10, scale = 2)
   private BigDecimal marketPrice;
 
-  @Column(name = "closing_price", precision = 20, scale = 2)
+  @Column(name = "closing_price", precision = 10, scale = 2)
   private BigDecimal closingPrice;
 
-  @Column(name = "high_price", precision = 20, scale = 2)
+  @Column(name = "high_price", precision = 10, scale = 2)
   private BigDecimal highPrice;
 
-  @Column(name = "low_price", precision = 20, scale = 2)
+  @Column(name = "low_price", precision = 10, scale = 2)
   private BigDecimal lowPrice;
 
-  @Column(name = "versus", precision = 20, scale = 2)
+  @Column(name = "versus", precision = 10, scale = 2)
   private BigDecimal versus;
 
-  @Column(name = "fluctuation_rate", precision = 10, scale = 2)
+  @Column(name = "fluctuation_rate", precision = 5, scale = 2)
   private BigDecimal fluctuationRate;
 
   @Column(name = "trading_quantity")
@@ -69,16 +67,40 @@ public class IndexData extends BaseEntity {
   @Column(name = "market_total_amount")
   private Long marketTotalAmount;
 
-  public void update(IndexDataUpdateRequest request) {
-    if (request.openingPrice() != null) this.openingPrice = request.openingPrice();
-    if (request.marketPrice() != null) this.marketPrice = request.marketPrice();
-    if (request.closingPrice() != null) this.closingPrice = request.closingPrice();
-    if (request.highPrice() != null) this.highPrice = request.highPrice();
-    if (request.lowPrice() != null) this.lowPrice = request.lowPrice();
-    if (request.versus() != null) this.versus = request.versus();
-    if (request.fluctuationRate() != null) this.fluctuationRate = request.fluctuationRate();
-    if (request.tradingQuantity() != null) this.tradingQuantity = request.tradingQuantity();
-    if (request.tradingPrice() != null) this.tradingPrice = request.tradingPrice();
-    if (request.marketTotalAmount() != null) this.marketTotalAmount = request.marketTotalAmount();
+  @Builder
+  public IndexData(IndexInfo indexInfo, LocalDate baseDate,
+      BigDecimal openingPrice, BigDecimal marketPrice,
+      BigDecimal closingPrice, BigDecimal highPrice,
+      BigDecimal lowPrice, BigDecimal versus,
+      BigDecimal fluctuationRate, Long tradingQuantity,
+      Long tradingPrice, Long marketTotalAmount) {
+    this.indexInfo = indexInfo;
+    this.baseDate = baseDate;
+    this.openingPrice = openingPrice;
+    this.marketPrice = marketPrice;
+    this.closingPrice = closingPrice;
+    this.highPrice = highPrice;
+    this.lowPrice = lowPrice;
+    this.versus = versus;
+    this.fluctuationRate = fluctuationRate;
+    this.tradingQuantity = tradingQuantity;
+    this.tradingPrice = tradingPrice;
+    this.marketTotalAmount = marketTotalAmount;
+  }
+  public void update(BigDecimal openingPrice, BigDecimal marketPrice,
+      BigDecimal closingPrice, BigDecimal highPrice,
+      BigDecimal lowPrice, BigDecimal versus,
+      BigDecimal fluctuationRate, Long tradingQuantity,
+      Long tradingPrice, Long marketTotalAmount) {
+    this.openingPrice = openingPrice;
+    this.marketPrice = marketPrice;
+    this.closingPrice = closingPrice;
+    this.highPrice = highPrice;
+    this.lowPrice = lowPrice;
+    this.versus = versus;
+    this.fluctuationRate = fluctuationRate;
+    this.tradingQuantity = tradingQuantity;
+    this.tradingPrice = tradingPrice;
+    this.marketTotalAmount = marketTotalAmount;
   }
 }
