@@ -2,7 +2,6 @@ package com.codeit.findex.entity;
 
 import com.codeit.findex.dto.indexinfo.IndexInfoUpdateRequest;
 import com.codeit.findex.entity.base.BaseEntity;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -86,7 +85,6 @@ public class IndexInfo extends BaseEntity {
     this.basePointInTime = basePointInTime;
     this.baseIndex = baseIndex;
   }
-}
 
   public void update(IndexInfoUpdateRequest request) {
     this.employedItemsCount = request.employedItemsCount();
