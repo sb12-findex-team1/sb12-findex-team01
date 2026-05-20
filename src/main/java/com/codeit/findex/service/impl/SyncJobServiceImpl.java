@@ -1,28 +1,29 @@
-package com.codeit.findex.service;
+package com.codeit.findex.service.impl;
 
-import com.codeit.findex.dto.syncJob.IndexDataSyncRequest;
-import com.codeit.findex.dto.syncJob.SyncJobDto;
-import com.codeit.findex.dto.syncJob.SyncJobListResponse;
-import com.codeit.findex.dto.syncJob.SyncJobSearchRequest;
+import com.codeit.findex.dto.client.StockMarketIndexRequest;
+import com.codeit.findex.dto.indexdata.IndexDataSyncRequest;
+import com.codeit.findex.dto.syncjob.SyncJobDto;
+import com.codeit.findex.dto.syncjob.SyncJobListResponse;
+import com.codeit.findex.dto.syncjob.SyncJobSearchRequest;
+import com.codeit.findex.entity.IndexData;
 import com.codeit.findex.entity.IndexInfo;
 import com.codeit.findex.entity.JobType;
 import com.codeit.findex.entity.Result;
+import com.codeit.findex.entity.SourceType;
 import com.codeit.findex.entity.SyncJob;
-import com.codeit.findex.repository.IndexInfoRepository;
 import com.codeit.findex.repository.SyncJobRepository;
-
+import com.codeit.findex.service.ClientIndexSyncService;
+import com.codeit.findex.service.SyncJobService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
-import java.util.ArrayList;
-import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -32,24 +33,26 @@ public class SyncJobServiceImpl implements SyncJobService {
   private static final int MAX_SIZE = 100;
 
   private final SyncJobRepository syncJobRepository;
-  private final IndexInfoRepository indexInfoRepository;
+  private final ClientIndexSyncService clientIndexSyncService;
 
   private final EntityManager entityManager;
 
 
+  @Transactional
   @Override
-  public List<SyncJobDto> syncIndexInfos() {
+  public List<SyncJobDto> syncIndexInfos(StockMarketIndexRequest request, String ip) {
 
     List<SyncJobDto> result = new ArrayList<>();
 
-    List<IndexInfo> indexInfos = indexInfoRepository.findAll();
+    List<IndexInfo> indexInfos = clientIndexSyncService.syncIndexInfo(request, SourceType.OPEN_API,
+        ip);
 
     for (IndexInfo indexInfo : indexInfos) {
       SyncJob syncJob = SyncJob.builder()
           .indexInfo(indexInfo)
           .jobType(JobType.INDEX_INFO)
-          .targetDate(LocalDate.now())
-          .worker("127.0.0.1")
+          .targetDate(null)
+          .worker(ip)
           .jobTime(Instant.now())
           .result(Result.SUCCESS)
           .build();
@@ -64,32 +67,24 @@ public class SyncJobServiceImpl implements SyncJobService {
 
   @Transactional
   @Override
-  public List<SyncJobDto> syncIndexData(IndexDataSyncRequest request) {
+  public List<SyncJobDto> syncIndexData(IndexDataSyncRequest request, String ip) {
 
     List<SyncJobDto> result = new ArrayList<>();
+    List<IndexData> indexDataList = clientIndexSyncService.syncIndexData(request, ip);
 
-    for (UUID indexInfoId : request.indexInfoIds()) {
-      for (LocalDate date = request.baseDateFrom();
-          !date.isAfter(request.baseDateTo());
-          date = date.plusDays(1)) {
+    for (IndexData indexData : indexDataList) {
+      SyncJob syncJob = SyncJob.builder()
+          .indexInfo(indexData.getIndexInfo())
+          .jobType(JobType.INDEX_DATA)
+          .targetDate(indexData.getBaseDate())
+          .worker(ip)
+          .jobTime(Instant.now())
+          .result(Result.SUCCESS)
+          .build();
 
-        IndexInfo indexInfo = indexInfoRepository.findById(indexInfoId)
-            .orElseThrow(() ->
-                new IllegalArgumentException("indexInfo 없음"));
+      SyncJob savedSyncJob = syncJobRepository.save(syncJob);
 
-        SyncJob syncJob = SyncJob.builder()
-            .indexInfo(indexInfo)
-            .jobType(JobType.INDEX_DATA)
-            .targetDate(date)
-            .worker("127.0.0.1")
-            .jobTime(Instant.now())
-            .result(Result.SUCCESS)
-            .build();
-
-        SyncJob savedSyncJob = syncJobRepository.save(syncJob);
-
-        result.add(toDto(savedSyncJob));
-      }
+      result.add(toDto(savedSyncJob));
     }
 
     return result;
@@ -134,12 +129,12 @@ public class SyncJobServiceImpl implements SyncJobService {
   private SyncJobDto toDto(SyncJob syncJob) {
     return new SyncJobDto(
         syncJob.getId(),
-        syncJob.getJobType().name(),
+        syncJob.getJobType(),
         syncJob.getIndexInfo().getId(),
         syncJob.getTargetDate(),
         syncJob.getWorker(),
         syncJob.getJobTime(),
-        syncJob.getResult().name()
+        syncJob.getResult()
     );
   }
 
