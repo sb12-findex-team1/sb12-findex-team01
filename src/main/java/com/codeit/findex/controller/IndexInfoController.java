@@ -1,5 +1,6 @@
 package com.codeit.findex.controller;
 
+import jakarta.validation.Valid;
 import com.codeit.findex.dto.indexinfo.IndexInfoListResponse;
 import com.codeit.findex.dto.indexinfo.IndexInfoCreateRequest;
 import com.codeit.findex.dto.indexinfo.IndexInfoResponse;
@@ -29,7 +30,9 @@ public class IndexInfoController {
   private final IndexInfoService indexInfoService;
 
   @PostMapping
-  public ResponseEntity<IndexInfoResponse> create(@RequestBody IndexInfoCreateRequest request) {
+  public ResponseEntity<IndexInfoResponse> create(
+      @Valid @RequestBody IndexInfoCreateRequest request
+  ) {
     return ResponseEntity.status(HttpStatus.CREATED).body(indexInfoService.create(request));
   }
 
@@ -39,8 +42,10 @@ public class IndexInfoController {
   }
 
   @PatchMapping("/{id}")
-  public ResponseEntity<IndexInfoResponse> update(@PathVariable UUID id,
-      @RequestBody IndexInfoUpdateRequest request) {
+  public ResponseEntity<IndexInfoResponse> update(
+      @PathVariable UUID id,
+      @Valid @RequestBody IndexInfoUpdateRequest request
+  ) {
     return ResponseEntity.ok(indexInfoService.update(id, request));
   }
 
