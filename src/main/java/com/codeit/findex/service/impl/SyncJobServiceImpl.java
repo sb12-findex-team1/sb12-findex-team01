@@ -375,14 +375,14 @@ public class SyncJobServiceImpl implements SyncJobService {
     long totalSuccess =
         syncJobRepository.countByResultAndJobTimeAfter(Result.SUCCESS, from);
 
-    long totalFaild =
+    long totalFailed =
         syncJobRepository.countByResultAndJobTimeAfter(Result.FAILED, from);
 
     Instant latestSync = syncJobRepository.findTopByOrderByJobTimeDesc()
         .map(SyncJob::getJobTime)
         .orElse(null);
 
-    return new SyncJobStatsDto(totalSuccess, totalFaild, latestSync);
+    return new SyncJobStatsDto(totalSuccess, totalFailed, latestSync);
   }
 
 }
