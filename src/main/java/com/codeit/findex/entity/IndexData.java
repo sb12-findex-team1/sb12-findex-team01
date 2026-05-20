@@ -1,5 +1,6 @@
 package com.codeit.findex.entity;
 
+import com.codeit.findex.dto.indexdata.IndexDataUpdateRequest;
 import com.codeit.findex.entity.base.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -43,6 +44,9 @@ public class IndexData extends BaseEntity {
   @Column(name = "market_price", precision = 10, scale = 2)
   private BigDecimal marketPrice;
 
+  @Column(name = "opening_price", precision = 10, scale = 2)
+  private BigDecimal openingPrice;
+
   @Column(name = "closing_price", precision = 10, scale = 2)
   private BigDecimal closingPrice;
 
@@ -67,7 +71,7 @@ public class IndexData extends BaseEntity {
   @Column(name = "market_total_amount")
   private Long marketTotalAmount;
 
-  @Builder
+
   public IndexData(IndexInfo indexInfo, LocalDate baseDate,
       BigDecimal openingPrice, BigDecimal marketPrice,
       BigDecimal closingPrice, BigDecimal highPrice,
@@ -87,20 +91,15 @@ public class IndexData extends BaseEntity {
     this.tradingPrice = tradingPrice;
     this.marketTotalAmount = marketTotalAmount;
   }
+
   public void update(BigDecimal openingPrice, BigDecimal marketPrice,
       BigDecimal closingPrice, BigDecimal highPrice,
       BigDecimal lowPrice, BigDecimal versus,
       BigDecimal fluctuationRate, Long tradingQuantity,
       Long tradingPrice, Long marketTotalAmount) {
-    this.openingPrice = openingPrice;
-    this.marketPrice = marketPrice;
-    this.closingPrice = closingPrice;
-    this.highPrice = highPrice;
-    this.lowPrice = lowPrice;
-    this.versus = versus;
-    this.fluctuationRate = fluctuationRate;
-    this.tradingQuantity = tradingQuantity;
-    this.tradingPrice = tradingPrice;
-    this.marketTotalAmount = marketTotalAmount;
+
+  }
+
+  public void update(IndexDataUpdateRequest request) {
   }
 }
