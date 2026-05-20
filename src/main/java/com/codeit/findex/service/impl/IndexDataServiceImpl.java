@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.codeit.findex.exception.DuplicateException;
@@ -103,8 +104,11 @@ public class IndexDataServiceImpl implements IndexDataService {
   }
 
   @Override
-  public Optional search(IndexDataSearchRequest request) {
+  public Slice<IndexDataResponse> search(IndexDataSearchRequest request) {
+    // 0-indexed 방어 및 페이징 객체 생성
     Pageable pageable = PageRequest.of(request.page(), request.size());
+
+    // ✅ Slice 객체 내부의 알맹이(IndexData)를 DTO(IndexDataResponse)로 매핑하여 반환
     return indexDataRepository.search(request, pageable)
         .map(IndexDataResponse::from);
   }

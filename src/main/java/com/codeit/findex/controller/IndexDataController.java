@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -65,8 +66,9 @@ public class IndexDataController {
 
   @GetMapping
   @Operation(summary = "지수 데이터 목록 조회")
-  public ResponseEntity<Page<IndexDataResponse>> search(
-      @ModelAttribute IndexDataSearchRequest request) {
+  public ResponseEntity<Slice<IndexDataResponse>> search(
+      @ModelAttribute IndexDataSearchRequest request
+  ) {
     return ResponseEntity.ok(indexDataService.search(request));
   }
   // 지수 차트 조회
