@@ -26,6 +26,7 @@ CREATE TABLE index_data
 	index_info_id        uuid                     NOT NULL,
 	base_date            date                     NOT NULL,
 	market_price         numeric(10, 2)           NULL,
+    opening_price         numeric(10, 2)            NULL,
 	closing_price        numeric(10, 2)           NULL,
 	high_price           numeric(10, 2)           NULL,
 	low_price            numeric(10, 2)           NULL,

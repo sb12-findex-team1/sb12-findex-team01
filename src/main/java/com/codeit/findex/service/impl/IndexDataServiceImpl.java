@@ -28,27 +28,27 @@ public class IndexDataServiceImpl implements IndexDataService {
   @Override
   @Transactional
   public IndexDataResponse create(IndexDataCreateRequest request) {
-    IndexInfo indexInfo = indexInfoRepository.findById(request.getIndexInfoId())
+    IndexInfo indexInfo = indexInfoRepository.findById(request.indexInfoId())
         .orElseThrow(() -> new EntityNotFoundException("IndexInfo not found"));
 
     if (indexDataRepository.existsByIndexInfoIdAndBaseDate(
-        request.getIndexInfoId(), request.getBaseDate())) {
+        request.indexInfoId(), request.baseDate())) {
       throw new DuplicateException("이미 등록된 날짜의 데이터입니다.");
     }
 
     IndexData indexData = IndexData.builder()
         .indexInfo(indexInfo)
-        .baseDate(request.getBaseDate())
-        .openingPrice(request.getOpeningPrice())
-        .marketPrice(request.getMarketPrice())
-        .closingPrice(request.getClosingPrice())
-        .highPrice(request.getHighPrice())
-        .lowPrice(request.getLowPrice())
-        .versus(request.getVersus())
-        .fluctuationRate(request.getFluctuationRate())
-        .tradingQuantity(request.getTradingQuantity())
-        .tradingPrice(request.getTradingPrice())
-        .marketTotalAmount(request.getMarketTotalAmount())
+        .baseDate(request.baseDate())
+        .openingPrice(request.openingPrice())
+        .marketPrice(request.marketPrice())
+        .closingPrice(request.closingPrice())
+        .highPrice(request.highPrice())
+        .lowPrice(request.lowPrice())
+        .versus(request.versus())
+        .fluctuationRate(request.fluctuationRate())
+        .tradingQuantity(request.tradingQuantity())
+        .tradingPrice(request.tradingPrice())
+        .marketTotalAmount(request.marketTotalAmount())
         .build();
 
     return IndexDataResponse.from(indexDataRepository.save(indexData));
@@ -60,18 +60,8 @@ public class IndexDataServiceImpl implements IndexDataService {
     IndexData indexData = indexDataRepository.findById(id)
         .orElseThrow(() -> new EntityNotFoundException("IndexData not found"));
 
-    indexData.update(
-        request.getOpeningPrice(),
-        request.getMarketPrice(),
-        request.getClosingPrice(),
-        request.getHighPrice(),
-        request.getLowPrice(),
-        request.getVersus(),
-        request.getFluctuationRate(),
-        request.getTradingQuantity(),
-        request.getTradingPrice(),
-        request.getMarketTotalAmount()
-    );
+    indexData.update(request);
+
     return IndexDataResponse.from(indexData);
   }
 
@@ -85,7 +75,7 @@ public class IndexDataServiceImpl implements IndexDataService {
 
   @Override
   public Page<IndexDataResponse> search(IndexDataSearchRequest request) {
-    Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
+    Pageable pageable = PageRequest.of(request.page(), request.size());
     return indexDataRepository.search(request, pageable)
         .map(IndexDataResponse::from);
   }

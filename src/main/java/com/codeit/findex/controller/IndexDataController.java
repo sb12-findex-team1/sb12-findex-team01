@@ -17,6 +17,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -43,7 +45,7 @@ public class IndexDataController {
   private final IndexDataService indexDataService;
   private final IndexDataCsvExporter csvExporter;
 
-  @PostMapping
+  @PatchMapping
   @Operation(summary = "지수 데이터 등록")
   public ResponseEntity<IndexDataResponse> create(
       @RequestBody @Valid IndexDataCreateRequest request) {
@@ -69,7 +71,15 @@ public class IndexDataController {
   @GetMapping
   @Operation(summary = "지수 데이터 목록 조회")
   public ResponseEntity<Page<IndexDataResponse>> search(
-      @ModelAttribute IndexDataSearchRequest request) {
+      @RequestParam(required = false) UUID indexInfoId,
+      @RequestParam(required = false) LocalDate startDate,
+      @RequestParam(required = false) LocalDate endDate,
+      @RequestParam(required = false) String sortBy,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "20") int size
+  ) {
+    IndexDataSearchRequest request = new IndexDataSearchRequest(
+        indexInfoId, startDate, endDate, sortBy, page, size);
     return ResponseEntity.ok(indexDataService.search(request));
   }
 

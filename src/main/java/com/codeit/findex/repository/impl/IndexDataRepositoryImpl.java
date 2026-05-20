@@ -1,8 +1,10 @@
-package com.codeit.findex.repository;
+
+package com.codeit.findex.repository.impl;
 
 import com.codeit.findex.dto.indexdata.IndexDataSearchRequest;
 import com.codeit.findex.entity.IndexData;
 import com.codeit.findex.entity.QIndexData;
+import com.codeit.findex.repository.IndexDataRepositoryCustom;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -18,18 +20,18 @@ import org.springframework.data.domain.Pageable;
 public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
 
   private final JPAQueryFactory queryFactory;
-  private final QIndexData indexData = QIndexData.indexData;
+  private static final QIndexData indexData = QIndexData.indexData;
 
   @Override
   public Page<IndexData> search(IndexDataSearchRequest request, Pageable pageable) {
     List<IndexData> content = queryFactory
         .selectFrom(indexData)
         .where(
-            indexInfoIdEq(request.getIndexInfoId()),
-            baseDateGoe(request.getStartDate()),
-            baseDateLoe(request.getEndDate())
+            indexInfoIdEq(request.indexInfoId()),
+            baseDateGoe(request.startDate()),
+            baseDateLoe(request.endDate())
         )
-        .orderBy(getOrderSpecifier(request.getSortBy()))
+        .orderBy(getOrderSpecifier(request.sortBy()))
         .offset(pageable.getOffset())
         .limit(pageable.getPageSize())
         .fetch();
@@ -38,9 +40,9 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
         .select(indexData.count())
         .from(indexData)
         .where(
-            indexInfoIdEq(request.getIndexInfoId()),
-            baseDateGoe(request.getStartDate()),
-            baseDateLoe(request.getEndDate())
+            indexInfoIdEq(request.indexInfoId()),
+            baseDateGoe(request.startDate()),
+            baseDateLoe(request.endDate())
         )
         .fetchOne();
 
@@ -52,15 +54,14 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
     return queryFactory
         .selectFrom(indexData)
         .where(
-            indexInfoIdEq(request.getIndexInfoId()),
-            baseDateGoe(request.getStartDate()),
-            baseDateLoe(request.getEndDate())
+            indexInfoIdEq(request.indexInfoId()),
+            baseDateGoe(request.startDate()),
+            baseDateLoe(request.endDate())
         )
-        .orderBy(getOrderSpecifier(request.getSortBy()))
+        .orderBy(getOrderSpecifier(request.sortBy()))
         .fetch();
   }
 
-  // BooleanExpression 헬퍼 — null 반환 시 QueryDSL이 조건을 자동으로 무시
   private BooleanExpression indexInfoIdEq(UUID id) {
     return id != null ? indexData.indexInfo.id.eq(id) : null;
   }
