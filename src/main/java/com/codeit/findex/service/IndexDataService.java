@@ -20,7 +20,7 @@ public interface IndexDataService {
   IndexDataResponse create(IndexDataCreateRequest request);
   IndexDataResponse update(UUID id, IndexDataUpdateRequest request);
   void delete(UUID id);
-  Slice<IndexDataResponse> search(IndexDataSearchRequest request);
+//  Slice<IndexDataResponse> search(IndexDataSearchRequest request);
   List<IndexData> findAllForExport(IndexDataSearchRequest request);
 
   IndexChartDto getChartData(UUID id, PeriodType periodType);

@@ -103,17 +103,18 @@ public class IndexDataServiceImpl implements IndexDataService {
     indexDataRepository.delete(indexData);
   }
 
-  @Override
-  public Slice<IndexDataResponse> search(IndexDataSearchRequest request) {
-    Pageable pageable = PageRequest.of(request.page(), request.size());
-
-    return indexDataRepository.search(request, pageable)
-        .map(IndexDataResponse::from);
-  }
+//  @Override
+//  public Slice<IndexDataResponse> search(IndexDataSearchRequest request) {
+//    Pageable pageable = PageRequest.of(request.page(), request.size());
+//
+//    return indexDataRepository.search(request, pageable)
+//        .map(IndexDataResponse::from);
+//  }
 
   @Override
   public List<IndexData> findAllForExport(IndexDataSearchRequest request) {
-    return indexDataRepository.findAllForExport(request);
+//    return indexDataRepository.findAllForExport(request);
+    return new ArrayList<>();
   }
 
   @Override

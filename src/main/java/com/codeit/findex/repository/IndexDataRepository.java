@@ -45,9 +45,9 @@ public interface IndexDataRepository extends JpaRepository<IndexData, UUID> {
 
   Optional<IndexData> findByIndexInfoAndBaseDate(IndexInfo indexInfo, LocalDate baseDate);
 
-  List<IndexData> findAllForExport(IndexDataSearchRequest request);
+//  List<IndexData> findAllForExport(IndexDataSearchRequest request);
 
-  Slice<IndexData> search(IndexDataSearchRequest request, Pageable pageable);
+//  Slice<IndexData> search(IndexDataSearchRequest request, Pageable pageable);
 
   boolean existsByIndexInfoIdAndBaseDate(@NotNull UUID uuid, @NotNull LocalDate localDate);
 }
