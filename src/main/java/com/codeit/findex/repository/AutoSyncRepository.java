@@ -14,6 +14,14 @@ public interface AutoSyncRepository extends JpaRepository<AutoSync, UUID> {
       select a
       from AutoSync a
       join fetch a.indexInfo i
+      where a.enabled = true
+      """)
+  List<AutoSync> findEnabledAutoSyncs();
+
+  @Query("""
+      select a
+      from AutoSync a
+      join fetch a.indexInfo i
       where (:indexInfoId is null or i.id = :indexInfoId)
         and (:enabled is null or a.enabled = :enabled)
         and (:idAfter is null or a.id > :idAfter)
