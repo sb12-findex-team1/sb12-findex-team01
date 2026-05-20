@@ -4,6 +4,7 @@ import com.codeit.findex.dto.indexinfo.IndexInfoListResponse;
 import com.codeit.findex.dto.indexinfo.IndexInfoCreateRequest;
 import com.codeit.findex.dto.indexinfo.IndexInfoResponse;
 import com.codeit.findex.dto.indexinfo.IndexInfoSearchRequest;
+import com.codeit.findex.dto.indexinfo.IndexInfoSummaryResponse;
 import com.codeit.findex.dto.indexinfo.IndexInfoUpdateRequest;
 import com.codeit.findex.entity.IndexInfo;
 import com.codeit.findex.repository.IndexInfoRepository;
@@ -58,7 +59,6 @@ public class IndexInfoServiceImpl implements IndexInfoService {
   public IndexInfoResponse update(UUID id, IndexInfoUpdateRequest request) {
     IndexInfo indexInfo = indexInfoRepository.findById(id)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 지수 정보입니다."));
-    indexInfo.update(request);
     indexInfo.update(request);
     indexInfoRepository.flush();
     return toResponse(indexInfo);
@@ -181,6 +181,18 @@ public class IndexInfoServiceImpl implements IndexInfoService {
         default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "지원하지 않는 정렬 방향입니다: " + sortDirection);
       };
     }
+
+  @Transactional(readOnly = true)
+  @Override
+  public List<IndexInfoSummaryResponse> findAllSummaries() {
+    return indexInfoRepository.findAll().stream()
+        .map(i -> new IndexInfoSummaryResponse(
+            i.getId(),
+            i.getIndexClassification(),
+            i.getIndexName()
+        ))
+        .toList();
+  }
 
 
     private IndexInfoResponse toResponse(IndexInfo indexInfo) {

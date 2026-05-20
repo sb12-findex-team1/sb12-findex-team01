@@ -4,7 +4,9 @@ import com.codeit.findex.dto.indexinfo.IndexInfoListResponse;
 import com.codeit.findex.dto.indexinfo.IndexInfoCreateRequest;
 import com.codeit.findex.dto.indexinfo.IndexInfoResponse;
 import com.codeit.findex.dto.indexinfo.IndexInfoSearchRequest;
+import com.codeit.findex.dto.indexinfo.IndexInfoSummaryResponse;
 import com.codeit.findex.dto.indexinfo.IndexInfoUpdateRequest;
+import java.util.List;
 import java.util.UUID;
 
 public interface IndexInfoService {
@@ -19,4 +21,6 @@ public interface IndexInfoService {
 
   IndexInfoListResponse<IndexInfoResponse> findAll(
       IndexInfoSearchRequest request, String cursor, UUID idAfter, int size);
+
+  List<IndexInfoSummaryResponse> findAllSummaries();
 }
