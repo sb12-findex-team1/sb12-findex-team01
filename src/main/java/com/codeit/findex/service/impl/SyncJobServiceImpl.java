@@ -19,6 +19,8 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -274,11 +276,11 @@ public class SyncJobServiceImpl implements SyncJobService {
     }
 
     if (request.jobTimeFrom() != null) {
-      query.setParameter("jobTimeFrom", request.jobTimeFrom());
+      query.setParameter("jobTimeFrom", toInstant(request.jobTimeFrom()));
     }
 
     if (request.jobTimeTo() != null) {
-      query.setParameter("jobTimeTo", request.jobTimeTo());
+      query.setParameter("jobTimeTo", toInstant(request.jobTimeTo()));
     }
 
     if (request.status() != null && !request.status().isBlank()) {
@@ -383,6 +385,10 @@ public class SyncJobServiceImpl implements SyncJobService {
         .orElse(null);
 
     return new SyncJobStatsDto(totalSuccess, totalFailed, latestSync);
+  }
+
+  private Instant toInstant(LocalDateTime dateTime) {
+    return dateTime.atZone(ZoneId.of("Asia/Seoul")).toInstant();
   }
 
 }

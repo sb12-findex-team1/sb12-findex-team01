@@ -2,6 +2,7 @@ package com.codeit.findex.dto.syncjob;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record SyncJobSearchRequest(
@@ -10,8 +11,8 @@ public record SyncJobSearchRequest(
     LocalDate baseDateFrom,
     LocalDate baseDateTo,
     String worker,
-    Instant jobTimeFrom,
-    Instant jobTimeTo,
+    LocalDateTime jobTimeFrom,
+    LocalDateTime jobTimeTo,
     String status,
     UUID idAfter,
     String cursor,
