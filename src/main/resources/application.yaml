@@ -1,6 +1,12 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
+
   application:
     name: sb12_findex_team1
+
+  profiles:
+    active: dev
 
   datasource:
     url: jdbc:postgresql://localhost:5432/findex
