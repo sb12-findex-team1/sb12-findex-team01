@@ -1,5 +1,6 @@
 package com.codeit.findex.controller;
 
+import com.codeit.findex.dto.indexinfo.IndexInfoSummaryResponse;
 import jakarta.validation.Valid;
 import com.codeit.findex.dto.indexinfo.IndexInfoListResponse;
 import com.codeit.findex.dto.indexinfo.IndexInfoCreateRequest;
@@ -7,6 +8,7 @@ import com.codeit.findex.dto.indexinfo.IndexInfoResponse;
 import com.codeit.findex.dto.indexinfo.IndexInfoSearchRequest;
 import com.codeit.findex.dto.indexinfo.IndexInfoUpdateRequest;
 import com.codeit.findex.service.IndexInfoService;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -36,6 +38,11 @@ public class IndexInfoController {
     return ResponseEntity.status(HttpStatus.CREATED).body(indexInfoService.create(request));
   }
 
+  @GetMapping("/summaries")
+  public ResponseEntity<List<IndexInfoSummaryResponse>> findAllSummaries() {
+    return ResponseEntity.ok(indexInfoService.findAllSummaries());
+  }
+
   @GetMapping("/{id}")
   public ResponseEntity<IndexInfoResponse> findById(@PathVariable UUID id) {
     return ResponseEntity.ok(indexInfoService.findById(id));
@@ -54,6 +61,7 @@ public class IndexInfoController {
     indexInfoService.delete(id);
     return ResponseEntity.noContent().build();
   }
+
 
   @GetMapping
   public ResponseEntity<IndexInfoListResponse<IndexInfoResponse>> findAll(
