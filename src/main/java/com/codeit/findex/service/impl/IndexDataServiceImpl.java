@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -136,53 +137,58 @@ public class IndexDataServiceImpl implements IndexDataService {
     List<ChartDataPoint> ma5DataPoints = new ArrayList<>();
     List<ChartDataPoint> ma20DataPoints = new ArrayList<>();
 
-    int startIndexToCollect = Math.max(0, rawData.size() - fetchDays);
+    int totalSize = rawData.size();
+
+    int startIndexToCollect = Math.max(0, totalSize - fetchDays);
 
     BigDecimal sum5 = BigDecimal.ZERO;
     BigDecimal sum20 = BigDecimal.ZERO;
 
-    for (int i = 0; i < startIndexToCollect; i++) {
-      BigDecimal price = rawData.get(i).getClosingPrice();
-      if (price == null) price = BigDecimal.ZERO;
-
-      if (i >= startIndexToCollect - 5)  sum5 = sum5.add(price);
-      if (i >= startIndexToCollect - 20) sum20 = sum20.add(price);
-    }
-
     BigDecimal period5 = BigDecimal.valueOf(5);
     BigDecimal period20 = BigDecimal.valueOf(20);
 
-    for (int i = startIndexToCollect; i < rawData.size(); i++) {
+    for (int i = 0; i < totalSize; i++) {
       IndexData current = rawData.get(i);
       BigDecimal currentPrice = current.getClosingPrice() != null ? current.getClosingPrice() : BigDecimal.ZERO;
 
-      BigDecimal out5Price = rawData.get(i - 5).getClosingPrice() != null ? rawData.get(i - 5).getClosingPrice() : BigDecimal.ZERO;
-      sum5 = sum5.add(currentPrice).subtract(out5Price);
-
-      BigDecimal out20Price = rawData.get(i - 20).getClosingPrice() != null ? rawData.get(i - 20).getClosingPrice() : BigDecimal.ZERO;
-      sum20 = sum20.add(currentPrice).subtract(out20Price);
-
-      String dateStr = current.getBaseDate().toString();
-
-      if (current.getClosingPrice() != null) {
-        dataPoints.add(new ChartDataPoint(dateStr, currentPrice.doubleValue()));
+      sum5 = sum5.add(currentPrice);
+      if (i >= 5) {
+        BigDecimal out5Price = rawData.get(i - 5).getClosingPrice() != null ? rawData.get(i - 5).getClosingPrice() : BigDecimal.ZERO;
+        sum5 = sum5.subtract(out5Price);
       }
 
-      BigDecimal avg5 = sum5.divide(period5, 2, RoundingMode.HALF_UP);
-      ma5DataPoints.add(new ChartDataPoint(dateStr, avg5.doubleValue()));
+      sum20 = sum20.add(currentPrice);
+      if (i >= 20) {
+        BigDecimal out20Price = rawData.get(i - 20).getClosingPrice() != null ? rawData.get(i - 20).getClosingPrice() : BigDecimal.ZERO;
+        sum20 = sum20.subtract(out20Price);
+      }
 
-      BigDecimal avg20 = sum20.divide(period20, 2, RoundingMode.HALF_UP);
-      ma20DataPoints.add(new ChartDataPoint(dateStr, avg20.doubleValue()));
+      if (i >= startIndexToCollect) {
+        String dateStr = current.getBaseDate().toString();
+
+        if (current.getClosingPrice() != null) {
+          dataPoints.add(new ChartDataPoint(dateStr, currentPrice.doubleValue()));
+        }
+
+        if (i >= 4) {
+          BigDecimal avg5 = sum5.divide(period5, 2, RoundingMode.HALF_UP);
+          ma5DataPoints.add(new ChartDataPoint(dateStr, avg5.doubleValue()));
+        }
+
+        if (i >= 19) {
+          BigDecimal avg20 = sum20.divide(period20, 2, RoundingMode.HALF_UP);
+          ma20DataPoints.add(new ChartDataPoint(dateStr, avg20.doubleValue()));
+        }
+      }
     }
 
+    Collections.reverse(dataPoints);
+    Collections.reverse(ma5DataPoints);
+    Collections.reverse(ma20DataPoints);
+
     return new IndexChartDto(
-        indexInfo.getId(),
-        indexInfo.getIndexClassification(),
-        indexInfo.getIndexName(),
-        periodType.name(),
-        dataPoints,
-        ma5DataPoints,
-        ma20DataPoints
+        indexInfo.getId(), indexInfo.getIndexClassification(), indexInfo.getIndexName(),
+        periodType.name(), dataPoints, ma5DataPoints, ma20DataPoints
     );
   }
 
@@ -191,7 +197,12 @@ public class IndexDataServiceImpl implements IndexDataService {
     IndexDataServiceImpl.PerformanceContext context = preparePerformanceContext(periodType);
 
     List<IndexPerformanceDto> performances = new ArrayList<>();
+
     for (IndexData current : context.currentDataList()) {
+      if (indexInfoId != null && !current.getIndexInfo().getId().equals(indexInfoId)) {
+        continue;
+      }
+
       IndexData before = context.beforeMap().get(current.getIndexInfo().getId());
 
       if (before != null && current.getClosingPrice() != null) {
@@ -270,20 +281,13 @@ public class IndexDataServiceImpl implements IndexDataService {
       case DAILY -> today.minusDays(1);
       case WEEKLY -> today.minusWeeks(1);
       case MONTHLY -> today.minusMonths(1);
-      default -> today.minusDays(1);
+      case QUARTERLY -> today.minusMonths(3);
+      case YEARLY -> today.minusYears(1);
     };
   }
 
   private List<IndexData> fetchRawData(UUID id, int fetchDays, LocalDate endDate) {
-    LocalDate startDate = endDate.minusDays(fetchDays + 45);
+    LocalDate startDate = endDate.minusDays(fetchDays + 70);
     return indexDataRepository.findChartRawData(id, startDate, endDate);
-  }
-
-  private double calculateMovingAverage(List<IndexData> rawData, int startIndex, int period) {
-    return rawData.subList(startIndex, startIndex + period).stream()
-        .map(IndexData::getClosingPrice)
-        .filter(Objects::nonNull)
-        .mapToDouble(BigDecimal::doubleValue)
-        .summaryStatistics().getAverage();
   }
 }

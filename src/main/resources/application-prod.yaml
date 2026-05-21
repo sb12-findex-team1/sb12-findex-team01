@@ -35,3 +35,8 @@ logging:
   level:
     root: info
     com.codeit.findex: info
+
+findex:
+  auto-sync:
+    cron: "0 0 0 * * *"   # 초 분 시 일 월 요일
+    zone: "Asia/Seoul"
