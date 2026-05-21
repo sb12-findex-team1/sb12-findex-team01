@@ -4,41 +4,17 @@ import com.codeit.findex.entity.IndexData;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.NonNull;
 
-public record IndexDataResponse(
-    UUID id,
-    UUID indexInfoId,
-    String indexName,
-    LocalDate baseDate,
-    BigDecimal marketPrice,
-    BigDecimal closingPrice,
-    BigDecimal highPrice,
-    BigDecimal lowPrice,
-    BigDecimal versus,
-    BigDecimal fluctuationRate,
-    Long tradingQuantity,
-    Long tradingPrice,
-    Long marketTotalAmount,
-    Instant createdAt
+public record IndexDataResponse <T> (
+    List<T> content,
+    String nextCursor,
+    UUID nextIdAfter,
+    int size,
+    long totalElements,
+    boolean hasNext
 ) {
-  public static IndexDataResponse from(IndexData entity) {
-    return new IndexDataResponse(
-        entity.getId(),
-        entity.getIndexInfo().getId(),
-        entity.getIndexInfo().getIndexName(),
-        entity.getBaseDate(),
-        entity.getMarketPrice(),
-        entity.getClosingPrice(),
-        entity.getHighPrice(),
-        entity.getLowPrice(),
-        entity.getVersus(),
-        entity.getFluctuationRate(),
-        entity.getTradingQuantity(),
-        entity.getTradingPrice(),
-        entity.getMarketTotalAmount(),
-        entity.getCreatedAt()
-    );
-  }
 }
+

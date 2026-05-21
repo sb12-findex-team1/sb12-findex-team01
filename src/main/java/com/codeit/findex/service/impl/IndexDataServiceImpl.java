@@ -102,11 +102,9 @@ public class IndexDataServiceImpl implements IndexDataService {
 
   @Override
   public List<IndexDataResponse> search(IndexDataSearchRequest request) {
-    return indexDataRepository.search(request)
-        .stream()
-        .map(IndexDataResponse::from)
-        .toList();
+    return indexDataRepository.search(request);
   }
+
   @Override
   public List<IndexData> findAllForExport(IndexDataSearchRequest request) {
 //    return indexDataRepository.findAllForExport(request);
