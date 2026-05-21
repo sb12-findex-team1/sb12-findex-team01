@@ -93,7 +93,7 @@ public class IndexDataController {
   // 지수 성과 랭킹 조회
   @GetMapping("/performance/rank")
   public ResponseEntity<List<RankedIndexPerformanceDto>> getPerformanceRank(
-      @RequestParam UUID indexInfoId,
+      @RequestParam(required = false) UUID indexInfoId,
       @RequestParam(defaultValue = "DAILY") PeriodType periodType,
       @RequestParam(defaultValue = "10") @Min(1) @Max(50) Integer limit
   ) {
