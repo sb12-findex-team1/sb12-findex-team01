@@ -66,9 +66,8 @@ public class IndexDataController {
 
   @GetMapping
   @Operation(summary = "지수 데이터 목록 조회")
-  public ResponseEntity<Slice<IndexDataResponse>> search(
-      @ModelAttribute IndexDataSearchRequest request
-  ) {
+  public ResponseEntity<List<IndexDataResponse>> search(
+      @ModelAttribute IndexDataSearchRequest request) {
     return ResponseEntity.ok(indexDataService.search(request));
   }
 
@@ -93,7 +92,7 @@ public class IndexDataController {
   // 지수 성과 랭킹 조회
   @GetMapping("/performance/rank")
   public ResponseEntity<List<RankedIndexPerformanceDto>> getPerformanceRank(
-      @RequestParam(required = false) UUID indexInfoId,
+      @RequestParam UUID indexInfoId,
       @RequestParam(defaultValue = "DAILY") PeriodType periodType,
       @RequestParam(defaultValue = "10") @Min(1) @Max(50) Integer limit
   ) {
