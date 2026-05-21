@@ -33,6 +33,18 @@ public interface IndexDataRepository extends JpaRepository<IndexData, UUID> {
       "WHERE id.baseDate = :baseDate")
   List<IndexData> findByBaseDateWithIndexInfo(@Param("baseDate") LocalDate baseDate);
 
+  @Query("""
+      SELECT d
+      FROM IndexData d
+      JOIN FETCH d.indexInfo i
+      WHERE i.id IN :indexInfoIds
+        AND d.baseDate BETWEEN :startDate AND :endDate
+      """)
+  List<IndexData> findByIndexInfoIdInAndBaseDateBetween(
+      @Param("indexInfoIds") List<UUID> indexInfoIds,
+      @Param("startDate") LocalDate startDate,
+      @Param("endDate") LocalDate endDate
+  );
   Optional<IndexData> findByIndexInfoAndBaseDate(IndexInfo indexInfo, LocalDate baseDate);
 
   List<IndexData> findAllForExport(IndexDataSearchRequest request);
