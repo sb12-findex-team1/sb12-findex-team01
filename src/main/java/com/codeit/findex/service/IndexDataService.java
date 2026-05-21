@@ -10,8 +10,9 @@ import com.codeit.findex.dto.indexdata.RankedIndexPerformanceDto;
 import com.codeit.findex.entity.IndexData;
 import com.codeit.findex.entity.PeriodType;
 import java.util.List;
-import java.util.Optional;
+import org.springframework.data.domain.Page;
 import java.util.UUID;
+
 
 
 public interface IndexDataService {
@@ -19,7 +20,7 @@ public interface IndexDataService {
   IndexDataResponse create(IndexDataCreateRequest request);
   IndexDataResponse update(UUID id, IndexDataUpdateRequest request);
   void delete(UUID id);
-  Optional search(IndexDataSearchRequest request);
+  Page<IndexDataResponse> search(IndexDataSearchRequest request);
   List<IndexData> findAllForExport(IndexDataSearchRequest request);
 
   IndexChartDto getChartData(UUID id, PeriodType periodType);
