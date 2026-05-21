@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -80,15 +81,15 @@ public class IndexDataServiceImpl implements IndexDataService {
         .orElseThrow(() -> new EntityNotFoundException("IndexData not found"));
 
     indexData.update(
-        request.getMarketPrice(),
-        request.getClosingPrice(),
-        request.getHighPrice(),
-        request.getLowPrice(),
-        request.getVersus(),
-        request.getFluctuationRate(),
-        request.getTradingQuantity(),
-        request.getTradingPrice(),
-        request.getMarketTotalAmount()
+        request.marketPrice(),
+        request.closingPrice(),
+        request.highPrice(),
+        request.lowPrice(),
+        request.versus(),
+        request.fluctuationRate(),
+        request.tradingQuantity(),
+        request.tradingPrice(),
+        request.marketTotalAmount()
     );
 
     return IndexDataResponse.from(indexData);
@@ -103,7 +104,7 @@ public class IndexDataServiceImpl implements IndexDataService {
   }
 
   @Override
-  public Optional search(IndexDataSearchRequest request) {
+  public Page<IndexDataResponse> search(IndexDataSearchRequest request) {
     Pageable pageable = PageRequest.of(request.page(), request.size());
     return indexDataRepository.search(request, pageable)
         .map(IndexDataResponse::from);
