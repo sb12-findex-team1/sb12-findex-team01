@@ -64,13 +64,12 @@ public class IndexDataController {
     return ResponseEntity.noContent().build();
   }
 
-//  @GetMapping
-//  @Operation(summary = "지수 데이터 목록 조회")
-//  public ResponseEntity<Slice<IndexDataResponse>> search(
-//      @ModelAttribute IndexDataSearchRequest request
-//  ) {
-//    return ResponseEntity.ok(indexDataService.search(request));
-//  }
+  @GetMapping
+  @Operation(summary = "지수 데이터 목록 조회")
+  public ResponseEntity<List<IndexDataResponse>> search(
+      @ModelAttribute IndexDataSearchRequest request) {
+    return ResponseEntity.ok(indexDataService.search(request));
+  }
 
   // 지수 차트 조회
   @GetMapping("/{id}/chart")

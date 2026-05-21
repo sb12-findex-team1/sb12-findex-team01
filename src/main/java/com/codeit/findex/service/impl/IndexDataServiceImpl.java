@@ -105,12 +105,12 @@ public class IndexDataServiceImpl implements IndexDataService {
   }
 
   @Override
-  public Page<IndexDataResponse> search(IndexDataSearchRequest request) {
-    Pageable pageable = PageRequest.of(request.page(), request.size());
-    return indexDataRepository.search(request, pageable)
-        .map(IndexDataResponse::from);
+  public List<IndexDataResponse> search(IndexDataSearchRequest request) {
+    return indexDataRepository.search(request)
+        .stream()
+        .map(IndexDataResponse::from)
+        .toList();
   }
-
   @Override
   public List<IndexData> findAllForExport(IndexDataSearchRequest request) {
 //    return indexDataRepository.findAllForExport(request);
