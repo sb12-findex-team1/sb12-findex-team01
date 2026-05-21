@@ -10,6 +10,7 @@ import com.codeit.findex.dto.indexdata.RankedIndexPerformanceDto;
 import com.codeit.findex.entity.IndexData;
 import com.codeit.findex.entity.PeriodType;
 import java.util.List;
+import org.springframework.data.domain.Page;
 import java.util.UUID;
 import org.springframework.data.domain.Slice;
 
@@ -29,4 +30,5 @@ public interface IndexDataService {
       int limit);
 
   List<IndexPerformanceDto> getPerformanceFavorite(PeriodType periodType);
+
 }

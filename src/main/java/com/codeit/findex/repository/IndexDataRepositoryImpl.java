@@ -5,6 +5,7 @@ import com.codeit.findex.entity.IndexData;
 import com.codeit.findex.entity.QIndexData;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.ComparableExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDate;
 import java.util.List;
@@ -25,26 +26,31 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
             indexInfoIdEq(request.indexInfoId()),
             baseDateGoe(request.startDate()),
             baseDateLoe(request.endDate()),
-            idAfterCursor(request.idAfter())
+            cursorAfter(request.cursor(), request.idAfter(), request.sortField(), request.sortDirection())
         )
-        .orderBy(getOrderSpecifier(request.sortField(), request.sortDirection()))
-        .limit(request.size())
+        .orderBy(
+            getOrderSpecifier(request.sortField(), request.sortDirection()),
+            indexData.id.asc()  // 동일 값 tie-breaking
+        )
+        .limit(request.size() + 1)  // +1 체크
         .fetch();
   }
-  private BooleanExpression idAfterCursor(Long idAfter) {
-    if (idAfter == null) return null;
-    // idAfter번째 이후 데이터 → baseDate 오프셋으로 처리
-    return indexData.baseDate.lt(
-        queryFactory
-            .select(indexData.baseDate)
-            .from(indexData)
-            .orderBy(indexData.baseDate.desc())
-            .offset(idAfter)
-            .limit(1)
-            .fetchOne()
-    );
-  }
 
+  private BooleanExpression cursorAfter(Object cursor, UUID idAfter, String sortField, String sortDirection) {
+    if (cursor == null || idAfter == null) return null;
+
+    boolean isAsc = "asc".equalsIgnoreCase(sortDirection);
+    ComparableExpression<Comparable<Object>> path = getSortPath(sortField);
+
+    @SuppressWarnings("unchecked")
+    Comparable<Object> cursorValue = (Comparable<Object>) cursor;
+
+
+    // 같은 값이면 id로 tie-break, 다른 값이면 방향에 따라
+    return isAsc
+        ? path.gt(cursorValue).or(path.eq(cursorValue).and(indexData.id.gt(idAfter)))
+        : path.lt(cursorValue).or(path.eq(cursorValue).and(indexData.id.gt(idAfter)));
+  }
   private OrderSpecifier<?> getOrderSpecifier(String sortField, String sortDirection) {
     boolean isAsc = "asc".equalsIgnoreCase(sortDirection);
     return switch (sortField) {
@@ -85,9 +91,21 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
   private BooleanExpression baseDateLoe(LocalDate endDate) {
     return endDate != null ? indexData.baseDate.loe(endDate) : null;
   }
-
-  private OrderSpecifier<?> getOrderSpecifier(String sortBy) {
-    if ("date_asc".equals(sortBy)) return indexData.baseDate.asc();
-    return indexData.baseDate.desc();
+  @SuppressWarnings("unchecked")
+  private ComparableExpression<Comparable<Object>> getSortPath(String sortField) {
+    return (ComparableExpression<Comparable<Object>>) switch (sortField) {
+      case "marketPrice"       -> indexData.marketPrice;
+      case "closingPrice"      -> indexData.closingPrice;
+      case "highPrice"         -> indexData.highPrice;
+      case "lowPrice"          -> indexData.lowPrice;
+      case "versus"            -> indexData.versus;
+      case "fluctuationRate"   -> indexData.fluctuationRate;
+      case "tradingQuantity"   -> indexData.tradingQuantity;
+      case "tradingPrice"      -> indexData.tradingPrice;
+      case "marketTotalAmount" -> indexData.marketTotalAmount;
+      default                  -> indexData.baseDate;
+    };
   }
+
+
 }
