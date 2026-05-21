@@ -11,11 +11,11 @@ public record IndexDataSearchRequest(
     String cursor,          // 커서
     String sortField,       // baseDate, marketPrice, closingPrice
     String sortDirection,
-    int size
+    Integer size
 ) {
 
   public IndexDataSearchRequest {
-    if (size <= 0)
+    if (size == null || size<=0)
       size = 10;
     if (sortField == null)
       sortField = "baseDate";
