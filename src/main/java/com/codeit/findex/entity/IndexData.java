@@ -32,7 +32,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class IndexData extends BaseEntity {
-
+//주석 -> 가독성
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "index_info_id", nullable = false)
   private IndexInfo indexInfo;

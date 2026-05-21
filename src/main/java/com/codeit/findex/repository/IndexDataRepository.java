@@ -13,7 +13,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface IndexDataRepository extends JpaRepository<IndexData, UUID> {
+public interface IndexDataRepository extends JpaRepository<IndexData, UUID>, IndexDataRepositoryCustom {
 
   @Query("SELECT id FROM IndexData id " +
       "WHERE id.indexInfo.id = :indexInfoId " +
@@ -35,9 +35,5 @@ public interface IndexDataRepository extends JpaRepository<IndexData, UUID> {
 
   Optional<IndexData> findByIndexInfoAndBaseDate(IndexInfo indexInfo, LocalDate baseDate);
 
-  List<IndexData> findAllForExport(IndexDataSearchRequest request);
-
-  <T> Optional<T> search(IndexDataSearchRequest request, Pageable pageable);
-
-  boolean existsByIndexInfoIdAndBaseDate(@NotNull UUID uuid, @NotNull LocalDate localDate);
+  boolean existsByIndexInfoIdAndBaseDate(UUID uuid, LocalDate baseDate);
 }
