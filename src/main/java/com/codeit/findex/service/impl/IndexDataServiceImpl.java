@@ -149,18 +149,28 @@ public class IndexDataServiceImpl implements IndexDataService {
       if (i >= startIndexToCollect - 20) sum20 = sum20.add(price);
     }
 
-    BigDecimal period5 = BigDecimal.valueOf(5);
-    BigDecimal period20 = BigDecimal.valueOf(20);
+    int count5 = Math.min(5, startIndexToCollect);
+    int count20 = Math.min(20, startIndexToCollect);
 
     for (int i = startIndexToCollect; i < rawData.size(); i++) {
       IndexData current = rawData.get(i);
       BigDecimal currentPrice = current.getClosingPrice() != null ? current.getClosingPrice() : BigDecimal.ZERO;
 
-      BigDecimal out5Price = rawData.get(i - 5).getClosingPrice() != null ? rawData.get(i - 5).getClosingPrice() : BigDecimal.ZERO;
-      sum5 = sum5.add(currentPrice).subtract(out5Price);
+      sum5 = sum5.add(currentPrice);
+      count5++;
+      if (i >= 5) {
+        BigDecimal out5Price = rawData.get(i - 5).getClosingPrice() != null ? rawData.get(i - 5).getClosingPrice() : BigDecimal.ZERO;
+        sum5 = sum5.subtract(out5Price);
+        count5--;
+      }
 
-      BigDecimal out20Price = rawData.get(i - 20).getClosingPrice() != null ? rawData.get(i - 20).getClosingPrice() : BigDecimal.ZERO;
-      sum20 = sum20.add(currentPrice).subtract(out20Price);
+      sum20 = sum20.add(currentPrice);
+      count20++;
+      if (i >= 20) {
+        BigDecimal out20Price = rawData.get(i - 20).getClosingPrice() != null ? rawData.get(i - 20).getClosingPrice() : BigDecimal.ZERO;
+        sum20 = sum20.subtract(out20Price);
+        count20--;
+      }
 
       String dateStr = current.getBaseDate().toString();
 
@@ -168,21 +178,20 @@ public class IndexDataServiceImpl implements IndexDataService {
         dataPoints.add(new ChartDataPoint(dateStr, currentPrice.doubleValue()));
       }
 
-      BigDecimal avg5 = sum5.divide(period5, 2, RoundingMode.HALF_UP);
-      ma5DataPoints.add(new ChartDataPoint(dateStr, avg5.doubleValue()));
+      if (count5 > 0) {
+        BigDecimal avg5 = sum5.divide(BigDecimal.valueOf(count5), 2, RoundingMode.HALF_UP);
+        ma5DataPoints.add(new ChartDataPoint(dateStr, avg5.doubleValue()));
+      }
 
-      BigDecimal avg20 = sum20.divide(period20, 2, RoundingMode.HALF_UP);
-      ma20DataPoints.add(new ChartDataPoint(dateStr, avg20.doubleValue()));
+      if (count20 > 0) {
+        BigDecimal avg20 = sum20.divide(BigDecimal.valueOf(count20), 2, RoundingMode.HALF_UP);
+        ma20DataPoints.add(new ChartDataPoint(dateStr, avg20.doubleValue()));
+      }
     }
 
     return new IndexChartDto(
-        indexInfo.getId(),
-        indexInfo.getIndexClassification(),
-        indexInfo.getIndexName(),
-        periodType.name(),
-        dataPoints,
-        ma5DataPoints,
-        ma20DataPoints
+        indexInfo.getId(), indexInfo.getIndexClassification(), indexInfo.getIndexName(),
+        periodType.name(), dataPoints, ma5DataPoints, ma20DataPoints
     );
   }
 
@@ -191,7 +200,12 @@ public class IndexDataServiceImpl implements IndexDataService {
     IndexDataServiceImpl.PerformanceContext context = preparePerformanceContext(periodType);
 
     List<IndexPerformanceDto> performances = new ArrayList<>();
+
     for (IndexData current : context.currentDataList()) {
+      if (indexInfoId != null && !current.getIndexInfo().getId().equals(indexInfoId)) {
+        continue;
+      }
+
       IndexData before = context.beforeMap().get(current.getIndexInfo().getId());
 
       if (before != null && current.getClosingPrice() != null) {
