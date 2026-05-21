@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -104,13 +105,12 @@ public class IndexDataServiceImpl implements IndexDataService {
     indexDataRepository.delete(indexData);
   }
 
-//  @Override
-//  public Slice<IndexDataResponse> search(IndexDataSearchRequest request) {
-//    Pageable pageable = PageRequest.of(request.page(), request.size());
-//
-//    return indexDataRepository.search(request, pageable)
-//        .map(IndexDataResponse::from);
-//  }
+  @Override
+  public Page<IndexDataResponse> search(IndexDataSearchRequest request) {
+    Pageable pageable = PageRequest.of(request.page(), request.size());
+    return indexDataRepository.search(request, pageable)
+        .map(IndexDataResponse::from);
+  }
 
   @Override
   public List<IndexData> findAllForExport(IndexDataSearchRequest request) {
@@ -291,5 +291,13 @@ public class IndexDataServiceImpl implements IndexDataService {
   private List<IndexData> fetchRawData(UUID id, int fetchDays, LocalDate endDate) {
     LocalDate startDate = endDate.minusDays(fetchDays + 45);
     return indexDataRepository.findChartRawData(id, startDate, endDate);
+  }
+
+  private double calculateMovingAverage(List<IndexData> rawData, int startIndex, int period) {
+    return rawData.subList(startIndex, startIndex + period).stream()
+        .map(IndexData::getClosingPrice)
+        .filter(Objects::nonNull)
+        .mapToDouble(BigDecimal::doubleValue)
+        .summaryStatistics().getAverage();
   }
 }
