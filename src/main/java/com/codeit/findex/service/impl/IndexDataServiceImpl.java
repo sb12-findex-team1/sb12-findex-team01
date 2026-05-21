@@ -20,6 +20,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -224,12 +225,17 @@ public class IndexDataServiceImpl implements IndexDataService {
   public List<IndexPerformanceDto> getPerformanceFavorite(PeriodType periodType) {
     PerformanceContext context = preparePerformanceContext(periodType);
 
-    return context.currentDataList().stream()
-        .filter(d -> d.getIndexInfo() != null && d.getIndexInfo().isFavorite())
+    List<IndexData> curDataList = indexDataRepository.findByFavoriteWithLatestDataSafe();
+
+    return curDataList.stream()
         .map(current -> {
           IndexData before = context.beforeMap().get(current.getIndexInfo().getId());
           return convertToPerformanceDto(current, before);
         })
+        .sorted(Comparator.comparing(
+            IndexPerformanceDto::fluctuationRate,
+            Comparator.nullsLast(Comparator.reverseOrder())
+        ))
         .toList();
   }
 
@@ -241,7 +247,7 @@ public class IndexDataServiceImpl implements IndexDataService {
 
     LocalDate targetDate = resolveTargetDate(actualToday, periodType);
 
-    LocalDate actualBeforeDate = indexDataRepository.findLatestAvailableDate(targetDate)
+    LocalDate actualBeforeDate = indexDataRepository.findOldestAvailableDate(targetDate)
         .orElseThrow(() -> new IllegalArgumentException("비교할 과거 데이터가 존재하지 않습니다."));
 
     List<IndexData> currentDataList = indexDataRepository.findByBaseDateWithIndexInfo(actualToday);
