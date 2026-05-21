@@ -5,6 +5,7 @@ import com.codeit.findex.dto.indexdata.IndexDataSyncRequest;
 import com.codeit.findex.dto.syncjob.SyncJobDto;
 import com.codeit.findex.dto.syncjob.SyncJobListResponse;
 import com.codeit.findex.dto.syncjob.SyncJobSearchRequest;
+import com.codeit.findex.dto.syncjob.SyncJobStatsDto;
 import com.codeit.findex.service.SyncJobService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -65,5 +66,10 @@ public class SyncJobController {
       @ModelAttribute SyncJobSearchRequest request
   ) {
     return ResponseEntity.ok(syncJobService.findAll(request));
+  }
+
+  @GetMapping("/stats")
+  public ResponseEntity<SyncJobStatsDto> getStats() {
+    return ResponseEntity.ok(syncJobService.getStats());
   }
 }

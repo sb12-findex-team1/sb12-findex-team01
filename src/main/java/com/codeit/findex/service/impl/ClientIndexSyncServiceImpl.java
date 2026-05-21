@@ -5,9 +5,11 @@ import com.codeit.findex.dto.client.StockMarketIndexRequest;
 import com.codeit.findex.dto.client.StockMarketIndexResponse;
 import com.codeit.findex.dto.client.StockMarketIndexResponse.Item;
 import com.codeit.findex.dto.indexdata.IndexDataSyncRequest;
+import com.codeit.findex.entity.AutoSync;
 import com.codeit.findex.entity.IndexData;
 import com.codeit.findex.entity.IndexInfo;
 import com.codeit.findex.entity.SourceType;
+import com.codeit.findex.repository.AutoSyncRepository;
 import com.codeit.findex.repository.IndexDataRepository;
 import com.codeit.findex.repository.IndexInfoRepository;
 import com.codeit.findex.service.ClientIndexSyncService;
@@ -19,6 +21,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -32,6 +36,7 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
   private final IndexApiClient indexApiClient;
   private final IndexInfoRepository indexInfoRepository;
   private final IndexDataRepository indexDataRepository;
+  private final AutoSyncRepository autoSyncRepository;
 
   @Transactional
   @Override
@@ -48,31 +53,81 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
     return saveIndexInfos(items, sourceType);
   }
 
-  //  TODO: 현재 api요청을 반복문으로 일단 처리.(name, icf)의 세트 검증으로, 최적화는 PR하고
   @Override
   public List<IndexData> syncIndexData(IndexDataSyncRequest request, String ip) {
     validateIndexDataSyncRequest(request);
 
     List<IndexInfo> indexInfos = getTargetIndexInfos(request);
-    List<IndexData> indexDataList = new ArrayList<>();
-
-    for (IndexInfo indexInfo : indexInfos) {
-      StockMarketIndexRequest stockMarketIndexRequest =
-          createIndexDataRequest(request, indexInfo);
-
-      StockMarketIndexResponse response =
-          indexApiClient.getStockMarketIndex(stockMarketIndexRequest);
-      validateStockMarketIndexResponse(response);
-
-      List<Item> items = response.response().body().items().item();
-
-      List<IndexData> savedIndexData =
-          updateOrInsertIndexData(items, indexInfo);
-
-      indexDataList.addAll(savedIndexData);
+    if (indexInfos.isEmpty()) {
+      return List.of();
     }
 
-    return indexDataList;
+    StockMarketIndexRequest stockMarketIndexRequest = createIndexDataRequest(request);
+    StockMarketIndexResponse response = indexApiClient.getStockMarketIndex(stockMarketIndexRequest);
+    validateStockMarketIndexResponse(response);
+
+    Map<String, IndexInfo> requestIndexInfoMap = new HashMap<>();
+    for (IndexInfo indexInfo : indexInfos) {
+      requestIndexInfoMap.put(
+          createIndexInfoKey(indexInfo.getIndexClassification(), indexInfo.getIndexName()),
+          indexInfo
+      );
+    }
+
+    List<IndexData> existingDataList = indexDataRepository
+        .findByIndexInfoIdInAndBaseDateBetween(
+            request.indexInfoIds(),
+            request.baseDateFrom(),
+            request.baseDateTo()
+        );
+    Map<String, IndexData> existingDataMap = new HashMap<>();
+    for (IndexData data : existingDataList) {
+      existingDataMap.put(
+          createIndexDataKey(data.getIndexInfo().getId(), data.getBaseDate()),
+          data
+      );
+    }
+
+    List<IndexData> result = new ArrayList<>();
+    List<IndexData> newIndexDataList = new ArrayList<>();
+
+    List<Item> items = response.response().body().items().item();
+    for (Item item : items) {
+      IndexInfo indexInfo = requestIndexInfoMap.get(
+          createIndexInfoKey(item.idxCsf(), item.idxNm())
+      );
+
+      if (indexInfo == null) {
+        continue;
+      }
+
+      LocalDate baseDate = LocalDate.parse(item.basDt(), DateTimeFormatter.BASIC_ISO_DATE);
+      String dataKey = createIndexDataKey(indexInfo.getId(), baseDate);
+
+      IndexData indexData = existingDataMap.get(dataKey);
+
+      if (indexData == null) {
+        indexData = toIndexData(item, indexInfo);
+        newIndexDataList.add(indexData);
+      } else {
+        indexData.update(
+            new BigDecimal(item.mkp()),
+            new BigDecimal(item.clpr()),
+            new BigDecimal(item.hipr()),
+            new BigDecimal(item.lopr()),
+            new BigDecimal(item.vs()),
+            new BigDecimal(item.fltRt()),
+            Long.parseLong(item.trqu()),
+            Long.parseLong(item.trPrc()),
+            Long.parseLong(item.lstgMrktTotAmt())
+        );
+      }
+
+      result.add(indexData);
+    }
+
+    indexDataRepository.saveAll(newIndexDataList);
+    return result;
   }
 
   private void validateIndexDataSyncRequest(IndexDataSyncRequest request) {
@@ -80,6 +135,10 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
         || request.baseDateFrom() == null
         || request.baseDateTo() == null) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "잘못된 요청입니다.");
+    }
+
+    if (request.indexInfoIds() == null || request.indexInfoIds().isEmpty()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "동기화할 지수 ID 목록이 필요합니다.");
     }
 
     if (request.baseDateFrom().isAfter(request.baseDateTo())) {
@@ -114,15 +173,7 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
   //  프론트에서 전달할 경우 분류를 한 경우만 보낸다.
   //  그리고 OPEN_API만 자동 업데이트.
   private List<IndexInfo> getTargetIndexInfos(IndexDataSyncRequest request) {
-    List<IndexInfo> indexInfos;
-
-    if (request.indexInfoIds() == null || request.indexInfoIds().isEmpty()) {
-      indexInfos = indexInfoRepository.findAll();
-    } else {
-      indexInfos = indexInfoRepository.findAllById(request.indexInfoIds());
-    }
-
-    return indexInfos.stream()
+    return indexInfoRepository.findAllById(request.indexInfoIds()).stream()
         .filter(indexInfo -> SourceType.OPEN_API.name().equals(indexInfo.getSourceType()))
         .toList();
   }
@@ -172,7 +223,16 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
     }
 
     if (!newIndexInfos.isEmpty()) {
-      indexInfoRepository.saveAll(newIndexInfos);
+      List<IndexInfo> savedIndexInfos = indexInfoRepository.saveAll(newIndexInfos);
+
+      List<AutoSync> autoSyncs = savedIndexInfos.stream()
+          .map(indexInfo -> AutoSync.builder()
+              .indexInfo(indexInfo)
+              .enabled(false)
+              .build())
+          .collect(Collectors.toList());
+
+      autoSyncRepository.saveAll(autoSyncs);
     }
 
     return result;
@@ -211,41 +271,8 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
     return indexClassification + "|" + indexName;
   }
 
-  //  TODO:N+1
-  private List<IndexData> updateOrInsertIndexData(List<Item> items, IndexInfo indexInfo) {
-    Map<LocalDate, IndexData> indexDataMap = new LinkedHashMap<>();
-
-    for (Item item : items) {
-      if (!matchesIndex(item, indexInfo)) {
-        continue;
-      }
-
-      LocalDate baseDate = LocalDate.parse(item.basDt(), DateTimeFormatter.BASIC_ISO_DATE);
-      IndexData indexData = indexDataRepository
-          .findByIndexInfoAndBaseDate(indexInfo, baseDate)
-          .orElseGet(() -> toIndexData(item, indexInfo));
-
-      indexData.update(
-          new BigDecimal(item.mkp()),
-          new BigDecimal(item.clpr()),
-          new BigDecimal(item.hipr()),
-          new BigDecimal(item.lopr()),
-          new BigDecimal(item.vs()),
-          new BigDecimal(item.fltRt()),
-          Long.parseLong(item.trqu()),
-          Long.parseLong(item.trPrc()),
-          Long.parseLong(item.lstgMrktTotAmt())
-      );
-
-      indexDataMap.put(baseDate, indexData);
-    }
-
-    return indexDataRepository.saveAll(indexDataMap.values());
-  }
-
-  private boolean matchesIndex(Item item, IndexInfo indexInfo) {
-    return indexInfo.getIndexName().equals(item.idxNm())
-        && indexInfo.getIndexClassification().equals(item.idxCsf());
+  private String createIndexDataKey(UUID indexInfoId, LocalDate baseDate) {
+    return indexInfoId + "|" + baseDate;
   }
 
   private IndexData toIndexData(Item item, IndexInfo indexInfo) {
@@ -264,18 +291,15 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
         .build();
   }
 
-  private StockMarketIndexRequest createIndexDataRequest(
-      IndexDataSyncRequest request,
-      IndexInfo indexInfo
-  ) {
+  private StockMarketIndexRequest createIndexDataRequest(IndexDataSyncRequest request) {
     return new StockMarketIndexRequest(
         null,
-        null,
+        10000,//아니면 페이지네이션으로 여러번 받아와야하는데 현재는 단순하게 1만개를 리밋으로 처리
         null,
         request.baseDateFrom().format(DateTimeFormatter.BASIC_ISO_DATE),
         request.baseDateTo().format(DateTimeFormatter.BASIC_ISO_DATE),
         null,
-        indexInfo.getIndexName(),
+        null,
         null,
         null,
         null,
