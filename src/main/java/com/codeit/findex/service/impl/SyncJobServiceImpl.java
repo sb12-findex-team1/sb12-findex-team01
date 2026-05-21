@@ -237,7 +237,7 @@ public class SyncJobServiceImpl implements SyncJobService {
     }
 
     if (request.worker() != null && !request.worker().isBlank()) {
-      jpql.append(" and s.worker = :worker");
+      jpql.append(" and s.worker like :worker");
     }
 
     if (request.jobTimeFrom() != null) {
@@ -272,7 +272,7 @@ public class SyncJobServiceImpl implements SyncJobService {
     }
 
     if (request.worker() != null && !request.worker().isBlank()) {
-      query.setParameter("worker", request.worker());
+      query.setParameter("worker", "%" + request.worker() + "%");
     }
 
     if (request.jobTimeFrom() != null) {
