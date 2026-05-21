@@ -8,15 +8,21 @@ public record IndexDataSearchRequest(
     LocalDate startDate,
     LocalDate endDate,
     String sortBy,
-    int page,
-    int size
+    Integer page,
+    Integer size
 ) {
+
   public IndexDataSearchRequest {
-    if (page < 0) page = 0;
-    if (size <= 0) size = 20;
+    if (page == null || page < 0) {
+      page = 0;
+    }
+    if (size == null || size <= 0) {
+      size = 20;
+    }
   }
 
-  public IndexDataSearchRequest(UUID indexInfoId, LocalDate startDate, LocalDate endDate, String sortBy) {
+  public IndexDataSearchRequest(UUID indexInfoId, LocalDate startDate, LocalDate endDate,
+      String sortBy) {
     this(indexInfoId, startDate, endDate, sortBy, 0, 20);
   }
 }
