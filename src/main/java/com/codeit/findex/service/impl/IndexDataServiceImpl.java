@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.codeit.findex.exception.DuplicateException;
@@ -80,15 +81,15 @@ public class IndexDataServiceImpl implements IndexDataService {
         .orElseThrow(() -> new EntityNotFoundException("IndexData not found"));
 
     indexData.update(
-        request.getMarketPrice(),
-        request.getClosingPrice(),
-        request.getHighPrice(),
-        request.getLowPrice(),
-        request.getVersus(),
-        request.getFluctuationRate(),
-        request.getTradingQuantity(),
-        request.getTradingPrice(),
-        request.getMarketTotalAmount()
+        request.marketPrice(),
+        request.closingPrice(),
+        request.highPrice(),
+        request.lowPrice(),
+        request.versus(),
+        request.fluctuationRate(),
+        request.tradingQuantity(),
+        request.tradingPrice(),
+        request.marketTotalAmount()
     );
 
     return IndexDataResponse.from(indexData);
@@ -102,16 +103,18 @@ public class IndexDataServiceImpl implements IndexDataService {
     indexDataRepository.delete(indexData);
   }
 
-  @Override
-  public Optional search(IndexDataSearchRequest request) {
-    Pageable pageable = PageRequest.of(request.page(), request.size());
-    return indexDataRepository.search(request, pageable)
-        .map(IndexDataResponse::from);
-  }
+//  @Override
+//  public Slice<IndexDataResponse> search(IndexDataSearchRequest request) {
+//    Pageable pageable = PageRequest.of(request.page(), request.size());
+//
+//    return indexDataRepository.search(request, pageable)
+//        .map(IndexDataResponse::from);
+//  }
 
   @Override
   public List<IndexData> findAllForExport(IndexDataSearchRequest request) {
-    return indexDataRepository.findAllForExport(request);
+//    return indexDataRepository.findAllForExport(request);
+    return new ArrayList<>();
   }
 
   @Override
@@ -119,30 +122,57 @@ public class IndexDataServiceImpl implements IndexDataService {
     IndexInfo indexInfo = indexInfoRepository.findById(id)
         .orElseThrow(() -> new IllegalArgumentException("지수 정보가 존재하지 않습니다."));
 
-    int fetchDays = resolveFetchDays(periodType);
-    List<IndexData> rawData = fetchRawData(id, fetchDays);
+    LocalDate endDate = LocalDate.now();
+    LocalDate targetStartDate = resolveTargetDate(endDate, periodType);
+
+    int fetchDays = (int) indexDataRepository.countByPeriod(id, targetStartDate, endDate);
+    if (fetchDays == 0) {
+      fetchDays = 22;
+    }
+
+    List<IndexData> rawData = fetchRawData(id, fetchDays, endDate);
 
     List<ChartDataPoint> dataPoints = new ArrayList<>();
     List<ChartDataPoint> ma5DataPoints = new ArrayList<>();
     List<ChartDataPoint> ma20DataPoints = new ArrayList<>();
 
-    int limit = Math.min(fetchDays, rawData.size());
+    int startIndexToCollect = Math.max(0, rawData.size() - fetchDays);
 
-    for (int i = limit - 1; i >= 0; i--) {
+    BigDecimal sum5 = BigDecimal.ZERO;
+    BigDecimal sum20 = BigDecimal.ZERO;
+
+    for (int i = 0; i < startIndexToCollect; i++) {
+      BigDecimal price = rawData.get(i).getClosingPrice();
+      if (price == null) price = BigDecimal.ZERO;
+
+      if (i >= startIndexToCollect - 5)  sum5 = sum5.add(price);
+      if (i >= startIndexToCollect - 20) sum20 = sum20.add(price);
+    }
+
+    BigDecimal period5 = BigDecimal.valueOf(5);
+    BigDecimal period20 = BigDecimal.valueOf(20);
+
+    for (int i = startIndexToCollect; i < rawData.size(); i++) {
       IndexData current = rawData.get(i);
+      BigDecimal currentPrice = current.getClosingPrice() != null ? current.getClosingPrice() : BigDecimal.ZERO;
+
+      BigDecimal out5Price = rawData.get(i - 5).getClosingPrice() != null ? rawData.get(i - 5).getClosingPrice() : BigDecimal.ZERO;
+      sum5 = sum5.add(currentPrice).subtract(out5Price);
+
+      BigDecimal out20Price = rawData.get(i - 20).getClosingPrice() != null ? rawData.get(i - 20).getClosingPrice() : BigDecimal.ZERO;
+      sum20 = sum20.add(currentPrice).subtract(out20Price);
+
       String dateStr = current.getBaseDate().toString();
 
       if (current.getClosingPrice() != null) {
-        dataPoints.add(new ChartDataPoint(dateStr, current.getClosingPrice().doubleValue()));
+        dataPoints.add(new ChartDataPoint(dateStr, currentPrice.doubleValue()));
       }
 
-      if (i + 5 <= rawData.size()) {
-        ma5DataPoints.add(new ChartDataPoint(dateStr, calculateMovingAverage(rawData, i, 5)));
-      }
+      BigDecimal avg5 = sum5.divide(period5, 2, RoundingMode.HALF_UP);
+      ma5DataPoints.add(new ChartDataPoint(dateStr, avg5.doubleValue()));
 
-      if (i + 20 <= rawData.size()) {
-        ma20DataPoints.add(new ChartDataPoint(dateStr, calculateMovingAverage(rawData, i, 20)));
-      }
+      BigDecimal avg20 = sum20.divide(period20, 2, RoundingMode.HALF_UP);
+      ma20DataPoints.add(new ChartDataPoint(dateStr, avg20.doubleValue()));
     }
 
     return new IndexChartDto(
@@ -240,29 +270,12 @@ public class IndexDataServiceImpl implements IndexDataService {
       case DAILY -> today.minusDays(1);
       case WEEKLY -> today.minusWeeks(1);
       case MONTHLY -> today.minusMonths(1);
+      default -> today.minusDays(1);
     };
   }
 
-  // 지금은 평균 평일 일수로 계산하였지만 추후 요구사항에 맞추어 수정예정
-  private int resolveFetchDays(PeriodType periodType) {
-    return switch (periodType) {
-      case DAILY -> 1;
-      case WEEKLY -> 7;
-      case MONTHLY -> 22;
-    };
-  }
-
-  private List<IndexData> fetchRawData(UUID id, int fetchDays) {
-    LocalDate endDate = LocalDate.now();
-    LocalDate startDate = endDate.minusDays(fetchDays + 30);
+  private List<IndexData> fetchRawData(UUID id, int fetchDays, LocalDate endDate) {
+    LocalDate startDate = endDate.minusDays(fetchDays + 45);
     return indexDataRepository.findChartRawData(id, startDate, endDate);
-  }
-
-  private double calculateMovingAverage(List<IndexData> rawData, int startIndex, int period) {
-    return rawData.subList(startIndex, startIndex + period).stream()
-        .map(IndexData::getClosingPrice)
-        .filter(Objects::nonNull)
-        .mapToDouble(BigDecimal::doubleValue)
-        .summaryStatistics().getAverage();
   }
 }

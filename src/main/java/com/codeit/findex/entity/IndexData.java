@@ -88,4 +88,4 @@ public class IndexData extends BaseEntity {
     if (tradingPrice != null)      this.tradingPrice = tradingPrice;
     if (marketTotalAmount != null) this.marketTotalAmount = marketTotalAmount;
   }
-  }
+}

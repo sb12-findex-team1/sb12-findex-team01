@@ -49,7 +49,7 @@ public class IndexDataCsvExporter {
             data.getIndexInfo().getIndexName(),
             data.getBaseDate().toString(),
             nullSafe(data.getClosingPrice()),
-            nullSafe(data.getOpeningPrice()),
+//            nullSafe(data.getOpeningPrice()),
             nullSafe(data.getHighPrice()),
             nullSafe(data.getLowPrice()),
             data.getTradingQuantity() != null ? String.valueOf(data.getTradingQuantity()) : ""
