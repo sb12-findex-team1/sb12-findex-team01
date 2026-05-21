@@ -284,7 +284,7 @@ public class IndexDataServiceImpl implements IndexDataService {
 
   private LocalDate resolveTargetDate(LocalDate today, PeriodType periodType) {
     return switch (periodType) {
-      case DAILY -> today.minusDays(2);
+      case DAILY -> today.minusDays(1);
       case WEEKLY -> today.minusWeeks(1);
       case MONTHLY -> today.minusMonths(1);
       case QUARTERLY -> today.minusMonths(3);
