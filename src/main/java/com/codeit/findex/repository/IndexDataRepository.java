@@ -38,10 +38,22 @@ public interface IndexDataRepository extends JpaRepository<IndexData, UUID>, Ind
   @Query("select MAX(id.baseDate) from IndexData id where id.baseDate <= :targetDate")
   Optional<LocalDate> findLatestAvailableDate(@Param("targetDate") LocalDate targetDate);
 
+  @Query("select MIN(id.baseDate) from IndexData id where id.baseDate >= :targetDate")
+  Optional<LocalDate> findOldestAvailableDate(@Param("targetDate") LocalDate targetDate);
+
   @Query("select id from IndexData id " +
       "join fetch id.indexInfo ii " +
       "where id.baseDate = :baseDate")
   List<IndexData> findByBaseDateWithIndexInfo(@Param("baseDate") LocalDate baseDate);
+
+  @Query("select d from IndexData d " +
+      "join fetch d.indexInfo ii " +
+      "where ii.favorite = true " +
+      "and d.baseDate = (" +
+      "   select max(sub.baseDate) from IndexData sub " +
+      "   where sub.indexInfo.id = ii.id" + // 👈 핵심: 각 지수의 고유 ID별로 가장 최신 날짜를 따로 구함
+      ")")
+  List<IndexData> findByFavoriteWithLatestDataSafe();
 
   @Query("""
       SELECT d
