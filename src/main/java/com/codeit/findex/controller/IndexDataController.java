@@ -1,6 +1,7 @@
 package com.codeit.findex.controller;
 
 import com.codeit.findex.csv.IndexDataCsvExporter;
+import com.codeit.findex.dto.indexdata.CursorPageResponseIndexDataDto;
 import com.codeit.findex.dto.indexdata.IndexChartDto;
 import com.codeit.findex.dto.indexdata.IndexDataCreateRequest;
 import com.codeit.findex.dto.indexdata.IndexDataResponse;
@@ -19,7 +20,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -37,7 +37,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/index-data")
 public class IndexDataController {
-
   private final IndexDataService indexDataService;
   private final IndexDataCsvExporter indexDataCsvExporter;
 
@@ -48,7 +47,6 @@ public class IndexDataController {
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(indexDataService.create(request));
   }
-
   @PatchMapping("/{id}")
   @Operation(summary = "지수 데이터 수정")
   public ResponseEntity<IndexDataResponse> update(
@@ -66,9 +64,8 @@ public class IndexDataController {
 
   @GetMapping
   @Operation(summary = "지수 데이터 목록 조회")
-  public ResponseEntity<Slice<IndexDataResponse>> search(
-      @ModelAttribute IndexDataSearchRequest request
-  ) {
+  public ResponseEntity<CursorPageResponseIndexDataDto<IndexDataResponse>> search(
+      @ModelAttribute IndexDataSearchRequest request) {
     return ResponseEntity.ok(indexDataService.search(request));
   }
 
@@ -93,7 +90,7 @@ public class IndexDataController {
   // 지수 성과 랭킹 조회
   @GetMapping("/performance/rank")
   public ResponseEntity<List<RankedIndexPerformanceDto>> getPerformanceRank(
-      @RequestParam(required = false) UUID indexInfoId,
+      @RequestParam UUID indexInfoId,
       @RequestParam(defaultValue = "DAILY") PeriodType periodType,
       @RequestParam(defaultValue = "10") @Min(1) @Max(50) Integer limit
   ) {

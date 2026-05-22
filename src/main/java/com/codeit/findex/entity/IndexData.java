@@ -10,6 +10,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.prefs.Preferences;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -88,4 +89,5 @@ public class IndexData extends BaseEntity {
     if (tradingPrice != null)      this.tradingPrice = tradingPrice;
     if (marketTotalAmount != null) this.marketTotalAmount = marketTotalAmount;
   }
+
 }

@@ -1,6 +1,8 @@
 package com.codeit.findex.service.impl;
 
+
 import com.codeit.findex.dto.indexdata.ChartDataPoint;
+import com.codeit.findex.dto.indexdata.CursorPageResponseIndexDataDto;
 import com.codeit.findex.dto.indexdata.IndexChartDto;
 import com.codeit.findex.dto.indexdata.IndexDataCreateRequest;
 import com.codeit.findex.dto.indexdata.IndexDataResponse;
@@ -23,15 +25,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.codeit.findex.exception.DuplicateException;
@@ -107,10 +103,51 @@ public class IndexDataServiceImpl implements IndexDataService {
   }
 
   @Override
-  public Page<IndexDataResponse> search(IndexDataSearchRequest request) {
-    Pageable pageable = PageRequest.of(request.page(), request.size());
-    return indexDataRepository.search(request, pageable)
-        .map(IndexDataResponse::from);
+  public CursorPageResponseIndexDataDto<IndexDataResponse> search(IndexDataSearchRequest request) {
+    List<IndexData> rawList = indexDataRepository.search(request); // size+1개 fetch
+
+    boolean hasNext = rawList.size() > request.size();
+    if (hasNext) {
+      rawList = rawList.subList(0, request.size());
+    }
+
+    List<IndexDataResponse> content = rawList.stream()
+        .map(IndexDataResponse::from)
+        .toList();
+
+    String nextCursor = null;
+    UUID nextIdAfter = null;
+    if (hasNext && !rawList.isEmpty()) {
+      IndexData last = rawList.get(rawList.size() - 1);
+      nextCursor = resolveCursorValue(last, request.sortField());
+      nextIdAfter = last.getId();
+    }
+
+    long totalElements = indexDataRepository.countBySearchCondition(request);
+
+    return new CursorPageResponseIndexDataDto<>(
+        content,
+        nextCursor,
+        nextIdAfter,
+        content.size(),
+        totalElements,
+        hasNext
+    );
+  }
+
+  private String resolveCursorValue(IndexData data, String sortField) {
+    return switch (sortField) {
+      case "marketPrice"       -> String.valueOf(data.getMarketPrice());
+      case "closingPrice"      -> String.valueOf(data.getClosingPrice());
+      case "highPrice"         -> String.valueOf(data.getHighPrice());
+      case "lowPrice"          -> String.valueOf(data.getLowPrice());
+      case "versus"            -> String.valueOf(data.getVersus());
+      case "fluctuationRate"   -> String.valueOf(data.getFluctuationRate());
+      case "tradingQuantity"   -> String.valueOf(data.getTradingQuantity());
+      case "tradingPrice"      -> String.valueOf(data.getTradingPrice());
+      case "marketTotalAmount" -> String.valueOf(data.getMarketTotalAmount());
+      default                  -> String.valueOf(data.getBaseDate());
+    };
   }
 
   @Override
