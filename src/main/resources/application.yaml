@@ -28,6 +28,9 @@ spring:
         physical_naming_strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
         jdbc.time_zone: UTC
         open-in-view: false
+        jdbc.batch_size: 500
+        order_inserts: true
+        order_updates: true
 
 public-data:
   index:

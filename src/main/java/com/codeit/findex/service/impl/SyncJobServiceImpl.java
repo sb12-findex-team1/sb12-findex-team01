@@ -35,6 +35,7 @@ public class SyncJobServiceImpl implements SyncJobService {
 
   private static final int DEFAULT_SIZE = 10;
   private static final int MAX_SIZE = 100;
+  private static final String NULL_TARGET_DATE_CURSOR = "__NULL__";
 
   private final SyncJobRepository syncJobRepository;
   private final ClientIndexSyncService clientIndexSyncService;
@@ -312,16 +313,40 @@ public class SyncJobServiceImpl implements SyncJobService {
     }
 
     if (sortField.equals("targetDate")) {
+      boolean nullCursor = NULL_TARGET_DATE_CURSOR.equals(request.cursor());
+
       if (sortDirection.isDescending()) {
-        jpql.append("""
-             and (s.targetDate < :cursorTargetDate
-            or (s.targetDate = :cursorTargetDate and s.id < :idAfter))
-            """);
+        if (nullCursor) {
+          jpql.append("""
+               and s.targetDate is null
+               and s.id < :idAfter
+              """);
+        } else {
+          jpql.append("""
+               and (
+                 s.targetDate < :cursorTargetDate
+                 or (s.targetDate = :cursorTargetDate and s.id < :idAfter)
+                 or s.targetDate is null
+               )
+              """);
+        }
       } else {
-        jpql.append("""
-             and (s.targetDate > :cursorTargetDate
-            or (s.targetDate = :cursorTargetDate and s.id > :idAfter))
-            """);
+        if (nullCursor) {
+          jpql.append("""
+               and (
+                 (s.targetDate is null and s.id > :idAfter)
+                 or s.targetDate is not null
+               )
+              """);
+        } else {
+          jpql.append("""
+               and s.targetDate is not null
+               and (
+                 s.targetDate > :cursorTargetDate
+                 or (s.targetDate = :cursorTargetDate and s.id > :idAfter)
+               )
+              """);
+        }
       }
     }
   }
@@ -331,6 +356,23 @@ public class SyncJobServiceImpl implements SyncJobService {
     Sort.Direction sortDirection = resolveSortDirection(request.sortDirection());
 
     String direction = sortDirection.isDescending() ? "desc" : "asc";
+
+    if (sortField.equals("targetDate")) {
+      if (sortDirection.isDescending()) {
+        jpql.append("""
+             order by case when s.targetDate is null then 1 else 0 end asc,
+                      s.targetDate desc,
+                      s.id desc
+            """);
+      } else {
+        jpql.append("""
+             order by case when s.targetDate is null then 0 else 1 end asc,
+                      s.targetDate asc,
+                      s.id asc
+            """);
+      }
+      return;
+    }
 
     jpql.append(" order by s.")
         .append(sortField)
@@ -352,7 +394,8 @@ public class SyncJobServiceImpl implements SyncJobService {
       query.setParameter("cursorJobTime", Instant.parse(request.cursor()));
     }
 
-    if (sortField.equals("targetDate")) {
+    if (sortField.equals("targetDate")
+        && !NULL_TARGET_DATE_CURSOR.equals(request.cursor())) {
       query.setParameter("cursorTargetDate", LocalDate.parse(request.cursor()));
     }
 
@@ -363,7 +406,9 @@ public class SyncJobServiceImpl implements SyncJobService {
     String resolvedSortField = resolveSortField(sortField);
 
     if (resolvedSortField.equals("targetDate")) {
-      return dto.targetDate().toString();
+      return dto.targetDate() == null
+          ? NULL_TARGET_DATE_CURSOR
+          : dto.targetDate().toString();
     }
 
     return dto.jobTime().toString();
