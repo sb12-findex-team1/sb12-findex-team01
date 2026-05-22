@@ -51,7 +51,7 @@ public interface IndexDataRepository extends JpaRepository<IndexData, UUID>, Ind
       "where ii.favorite = true " +
       "and d.baseDate = (" +
       "   select max(sub.baseDate) from IndexData sub " +
-      "   where sub.indexInfo.id = ii.id" + // 👈 핵심: 각 지수의 고유 ID별로 가장 최신 날짜를 따로 구함
+      "   where sub.indexInfo.id = ii.id" +
       ")")
   List<IndexData> findByFavoriteWithLatestDataSafe();
 
