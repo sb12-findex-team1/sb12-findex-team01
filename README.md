@@ -40,7 +40,7 @@
     </td>
     <td align="center">
         <a href="https://github.com/yesungyoo">
-          <div>이예성</div>
+          <div>유예성</div>
         </a>
     </td>
     <td align="center">
