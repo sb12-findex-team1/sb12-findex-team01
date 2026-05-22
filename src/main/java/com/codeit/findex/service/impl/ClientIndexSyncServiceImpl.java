@@ -62,10 +62,6 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
       return List.of();
     }
 
-    StockMarketIndexRequest stockMarketIndexRequest = createIndexDataRequest(request);
-    StockMarketIndexResponse response = indexApiClient.getStockMarketIndex(stockMarketIndexRequest);
-    validateStockMarketIndexResponse(response);
-
     Map<String, IndexInfo> requestIndexInfoMap = new HashMap<>();
     for (IndexInfo indexInfo : indexInfos) {
       requestIndexInfoMap.put(
@@ -91,39 +87,52 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
     List<IndexData> result = new ArrayList<>();
     List<IndexData> newIndexDataList = new ArrayList<>();
 
-    List<Item> items = response.response().body().items().item();
-    for (Item item : items) {
-      IndexInfo indexInfo = requestIndexInfoMap.get(
-          createIndexInfoKey(item.idxCsf(), item.idxNm())
-      );
+    int pageNo = 1;
+    while (true) {
 
-      if (indexInfo == null) {
-        continue;
-      }
+      StockMarketIndexRequest stockMarketIndexRequest = createIndexDataRequest(request, pageNo);
+      StockMarketIndexResponse response = indexApiClient.getStockMarketIndex(
+          stockMarketIndexRequest);
+      validateStockMarketIndexResponse(response);
 
-      LocalDate baseDate = LocalDate.parse(item.basDt(), DateTimeFormatter.BASIC_ISO_DATE);
-      String dataKey = createIndexDataKey(indexInfo.getId(), baseDate);
-
-      IndexData indexData = existingDataMap.get(dataKey);
-
-      if (indexData == null) {
-        indexData = toIndexData(item, indexInfo);
-        newIndexDataList.add(indexData);
-      } else {
-        indexData.update(
-            new BigDecimal(item.mkp()),
-            new BigDecimal(item.clpr()),
-            new BigDecimal(item.hipr()),
-            new BigDecimal(item.lopr()),
-            new BigDecimal(item.vs()),
-            new BigDecimal(item.fltRt()),
-            Long.parseLong(item.trqu()),
-            Long.parseLong(item.trPrc()),
-            Long.parseLong(item.lstgMrktTotAmt())
+      StockMarketIndexResponse.Body body = response.response().body();
+      List<Item> items = body.items().item();
+      for (Item item : items) {
+        IndexInfo indexInfo = requestIndexInfoMap.get(
+            createIndexInfoKey(item.idxCsf(), item.idxNm())
         );
-      }
 
-      result.add(indexData);
+        if (indexInfo == null) {
+          continue;
+        }
+
+        LocalDate baseDate = LocalDate.parse(item.basDt(), DateTimeFormatter.BASIC_ISO_DATE);
+        String dataKey = createIndexDataKey(indexInfo.getId(), baseDate);
+
+        IndexData indexData = existingDataMap.get(dataKey);
+
+        if (indexData == null) {
+          indexData = toIndexData(item, indexInfo);
+          newIndexDataList.add(indexData);
+        } else {
+          indexData.update(
+              new BigDecimal(item.mkp()),
+              new BigDecimal(item.clpr()),
+              new BigDecimal(item.hipr()),
+              new BigDecimal(item.lopr()),
+              new BigDecimal(item.vs()),
+              new BigDecimal(item.fltRt()),
+              Long.parseLong(item.trqu()),
+              Long.parseLong(item.trPrc()),
+              Long.parseLong(item.lstgMrktTotAmt())
+          );
+        }
+        result.add(indexData);
+      }
+      if (body.numOfRows() * body.pageNo() >= body.totalCount()) {
+        break;
+      }
+      pageNo++;
     }
 
     indexDataRepository.saveAll(newIndexDataList);
@@ -291,9 +300,12 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
         .build();
   }
 
-  private StockMarketIndexRequest createIndexDataRequest(IndexDataSyncRequest request) {
+  private StockMarketIndexRequest createIndexDataRequest(
+      IndexDataSyncRequest request,
+      int pageNo
+  ) {
     return new StockMarketIndexRequest(
-        null,
+        pageNo,
         10000,//아니면 페이지네이션으로 여러번 받아와야하는데 현재는 단순하게 1만개를 리밋으로 처리
         null,
         request.baseDateFrom().format(DateTimeFormatter.BASIC_ISO_DATE),
