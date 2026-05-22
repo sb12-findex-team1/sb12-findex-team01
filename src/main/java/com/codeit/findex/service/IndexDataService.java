@@ -1,5 +1,6 @@
 package com.codeit.findex.service;
 
+import com.codeit.findex.dto.indexdata.CursorPageResponseIndexDataDto;
 import com.codeit.findex.dto.indexdata.IndexChartDto;
 import com.codeit.findex.dto.indexdata.IndexDataCreateRequest;
 import com.codeit.findex.dto.indexdata.IndexDataResponse;
@@ -21,7 +22,10 @@ public interface IndexDataService {
   IndexDataResponse create(IndexDataCreateRequest request);
   IndexDataResponse update(UUID id, IndexDataUpdateRequest request);
   void delete(UUID id);
-  List<IndexDataResponse> search(IndexDataSearchRequest request);
+//  List<IndexDataResponse> search(IndexDataSearchRequest request);
+
+  CursorPageResponseIndexDataDto<IndexDataResponse> search(IndexDataSearchRequest request);
+
   List<IndexData> findAllForExport(IndexDataSearchRequest request);
 
   IndexChartDto getChartData(UUID id, PeriodType periodType);

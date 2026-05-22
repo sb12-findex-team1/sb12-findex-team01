@@ -9,4 +9,5 @@ import org.springframework.data.domain.Pageable;
 public interface IndexDataRepositoryCustom {
   List<IndexData> search(IndexDataSearchRequest request);
   List<IndexData> findAllForExport(IndexDataSearchRequest request);
+  long countBySearchCondition(IndexDataSearchRequest request);
 }

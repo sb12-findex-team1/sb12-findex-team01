@@ -5,7 +5,7 @@ import com.codeit.findex.entity.IndexData;
 import com.codeit.findex.entity.QIndexData;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.ComparableExpression;
+import com.querydsl.core.types.dsl.ComparableExpressionBase;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDate;
 import java.util.List;
@@ -28,29 +28,58 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
             baseDateLoe(request.endDate()),
             cursorAfter(request.cursor(), request.idAfter(), request.sortField(), request.sortDirection())
         )
+        // 동일 값 tie-breaking
         .orderBy(
             getOrderSpecifier(request.sortField(), request.sortDirection()),
-            indexData.id.asc()  // 동일 값 tie-breaking
+            "asc".equalsIgnoreCase(request.sortDirection()) ? indexData.id.asc() : indexData.id.desc()
         )
         .limit(request.size() + 1)  // +1 체크
         .fetch();
   }
 
-  private BooleanExpression cursorAfter(Object cursor, UUID idAfter, String sortField, String sortDirection) {
+  private BooleanExpression cursorAfter(
+      String cursor, UUID idAfter, String sortField, String sortDirection) {
     if (cursor == null || idAfter == null) return null;
 
     boolean isAsc = "asc".equalsIgnoreCase(sortDirection);
-    ComparableExpression<Comparable<Object>> path = getSortPath(sortField);
 
-    @SuppressWarnings("unchecked")
-    Comparable<Object> cursorValue = (Comparable<Object>) cursor;
-
-
-    // 같은 값이면 id로 tie-break, 다른 값이면 방향에 따라
-    return isAsc
-        ? path.gt(cursorValue).or(path.eq(cursorValue).and(indexData.id.gt(idAfter)))
-        : path.lt(cursorValue).or(path.eq(cursorValue).and(indexData.id.gt(idAfter)));
+    return switch (sortField) {
+      case "tradingQuantity"   -> buildLongCursor(indexData.tradingQuantity,   Long.parseLong(cursor), idAfter, isAsc);
+      case "tradingPrice"      -> buildLongCursor(indexData.tradingPrice,      Long.parseLong(cursor), idAfter, isAsc);
+      case "marketTotalAmount" -> buildLongCursor(indexData.marketTotalAmount, Long.parseLong(cursor), idAfter, isAsc);
+      case "marketPrice"       -> buildBigDecimalCursor(indexData.marketPrice,      new java.math.BigDecimal(cursor), idAfter, isAsc);
+      case "closingPrice"      -> buildBigDecimalCursor(indexData.closingPrice,     new java.math.BigDecimal(cursor), idAfter, isAsc);
+      case "highPrice"         -> buildBigDecimalCursor(indexData.highPrice,        new java.math.BigDecimal(cursor), idAfter, isAsc);
+      case "lowPrice"          -> buildBigDecimalCursor(indexData.lowPrice,         new java.math.BigDecimal(cursor), idAfter, isAsc);
+      case "versus"            -> buildBigDecimalCursor(indexData.versus,           new java.math.BigDecimal(cursor), idAfter, isAsc);
+      case "fluctuationRate"   -> buildBigDecimalCursor(indexData.fluctuationRate,  new java.math.BigDecimal(cursor), idAfter, isAsc);
+      default                  -> buildDateCursor(indexData.baseDate, LocalDate.parse(cursor), idAfter, isAsc);
+    };
   }
+
+  private BooleanExpression buildLongCursor(
+      com.querydsl.core.types.dsl.NumberPath<Long> path, Long value, UUID idAfter, boolean isAsc) {
+    return isAsc
+        ? path.gt(value).or(path.eq(value).and(indexData.id.gt(idAfter)))
+        : path.lt(value).or(path.eq(value).and(indexData.id.lt(idAfter)));
+  }
+
+  private BooleanExpression buildBigDecimalCursor(
+      com.querydsl.core.types.dsl.NumberPath<java.math.BigDecimal> path, java.math.BigDecimal value, UUID idAfter, boolean isAsc) {
+    return isAsc
+        ? path.gt(value).or(path.eq(value).and(indexData.id.gt(idAfter)))
+        : path.lt(value).or(path.eq(value).and(indexData.id.lt(idAfter)));
+  }
+
+  private BooleanExpression buildDateCursor(
+      com.querydsl.core.types.dsl.DatePath<LocalDate> path, LocalDate value, UUID idAfter, boolean isAsc) {
+    return isAsc
+        ? path.gt(value).or(path.eq(value).and(indexData.id.gt(idAfter)))
+        : path.lt(value).or(path.eq(value).and(indexData.id.lt(idAfter)));
+  }
+
+
+
   private OrderSpecifier<?> getOrderSpecifier(String sortField, String sortDirection) {
     boolean isAsc = "asc".equalsIgnoreCase(sortDirection);
     return switch (sortField) {
@@ -80,6 +109,21 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
         .fetch();
   }
 
+  @Override
+  public long countBySearchCondition(IndexDataSearchRequest request) {
+    Long count = queryFactory
+        .select(indexData.count())
+        .from(indexData)
+        .where(
+            indexInfoIdEq(request.indexInfoId()),
+            baseDateGoe(request.startDate()),
+            baseDateLoe(request.endDate())
+        )
+        .fetchOne();
+    return count != null ? count : 0L;
+  }
+
+
   private BooleanExpression indexInfoIdEq(UUID indexInfoId) {
     return indexInfoId != null ? indexData.indexInfo.id.eq(UUID.fromString(indexInfoId.toString())) : null;
   }
@@ -91,21 +135,7 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
   private BooleanExpression baseDateLoe(LocalDate endDate) {
     return endDate != null ? indexData.baseDate.loe(endDate) : null;
   }
-  @SuppressWarnings("unchecked")
-  private ComparableExpression<Comparable<Object>> getSortPath(String sortField) {
-    return (ComparableExpression<Comparable<Object>>) switch (sortField) {
-      case "marketPrice"       -> indexData.marketPrice;
-      case "closingPrice"      -> indexData.closingPrice;
-      case "highPrice"         -> indexData.highPrice;
-      case "lowPrice"          -> indexData.lowPrice;
-      case "versus"            -> indexData.versus;
-      case "fluctuationRate"   -> indexData.fluctuationRate;
-      case "tradingQuantity"   -> indexData.tradingQuantity;
-      case "tradingPrice"      -> indexData.tradingPrice;
-      case "marketTotalAmount" -> indexData.marketTotalAmount;
-      default                  -> indexData.baseDate;
-    };
-  }
+
 
 
 }

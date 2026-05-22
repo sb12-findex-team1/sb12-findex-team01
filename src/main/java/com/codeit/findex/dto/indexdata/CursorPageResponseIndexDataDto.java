@@ -11,4 +11,5 @@ public record CursorPageResponseIndexDataDto<T>(
       long totalElements,
       boolean hasNext
 ) {
+
 }

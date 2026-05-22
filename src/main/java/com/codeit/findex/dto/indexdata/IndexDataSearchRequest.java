@@ -8,7 +8,7 @@ public record IndexDataSearchRequest(
     LocalDate startDate,
     LocalDate endDate,
     UUID idAfter,           // 이전 페이지 마지막 요소 ID
-    Object cursor,          // 커서
+    String cursor,          // 커서 Object -> String
     String sortField,       // baseDate, marketPrice, closingPrice
     String sortDirection,
     Integer size
