@@ -62,7 +62,7 @@
 
 ## 기술 스택
 - Framework: Spring Boot
-- Database & ORM: PostgreSQL, Spring Data JPA
+- Database & ORM: PostgreSQL, Spring Data JPA, QueryDSL
 - Scheduling: Spring Scheduler
 - External API: 공공데이터포털 Open API
 - 배포: Railway.io
