@@ -1,23 +1,19 @@
-package com.codeit.findex.dto;
+package com.codeit.findex.dto.syncjob;
 
+import com.codeit.findex.entity.JobType;
+import com.codeit.findex.entity.Result;
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class SyncJobDto {
-  private UUID id;
-  private String jobType;
-  private Long indexInfoId;
-  private Instant targetDate;
-  private String worker;
-  private Instant jobTime;
-  private String result;
+public record SyncJobDto(
+    UUID id,
+    JobType jobType,
+    UUID indexInfoId,
+    LocalDate targetDate,
+    String worker,
+    Instant jobTime,
+    Result result
+) {
+
 }

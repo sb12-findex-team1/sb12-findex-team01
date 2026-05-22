@@ -1,0 +1,73 @@
+package com.codeit.findex.repository;
+
+import com.codeit.findex.entity.IndexData;
+import com.codeit.findex.entity.IndexInfo;
+import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface IndexDataRepository extends JpaRepository<IndexData, UUID>, IndexDataRepositoryCustom {
+
+  @Query("select id from IndexData id " +
+      "where id.indexInfo.id = :indexInfoId " +
+      "and id.baseDate between :startDate and :endDate " +
+      "order by id.baseDate asc ")
+  List<IndexData> findChartRawData(
+      @Param("indexInfoId") UUID indexInfoId,
+      @Param("startDate") LocalDate startDate,
+      @Param("endDate") LocalDate endDate
+  );
+
+  @Query("select count(id) from IndexData id " +
+      "where id.indexInfo.id = :indexInfoId " +
+      "and id.baseDate between :startDate and :endDate")
+  long countByPeriod(
+      @Param("indexInfoId") UUID indexInfoId,
+      @Param("startDate") LocalDate startDate,
+      @Param("endDate") LocalDate endDate
+  );
+
+  @Query("select MAX(id.baseDate) from IndexData id where id.baseDate <= :targetDate")
+  Optional<LocalDate> findLatestAvailableDate(@Param("targetDate") LocalDate targetDate);
+
+  @Query("select MIN(id.baseDate) from IndexData id where id.baseDate >= :targetDate")
+  Optional<LocalDate> findOldestAvailableDate(@Param("targetDate") LocalDate targetDate);
+
+  @Query("select id from IndexData id " +
+      "join fetch id.indexInfo ii " +
+      "where id.baseDate = :baseDate")
+  List<IndexData> findByBaseDateWithIndexInfo(@Param("baseDate") LocalDate baseDate);
+
+  @Query("select d from IndexData d " +
+      "join fetch d.indexInfo ii " +
+      "where ii.favorite = true " +
+      "and d.baseDate = (" +
+      "   select max(sub.baseDate) from IndexData sub " +
+      "   where sub.indexInfo.id = ii.id" + // 👈 핵심: 각 지수의 고유 ID별로 가장 최신 날짜를 따로 구함
+      ")")
+  List<IndexData> findByFavoriteWithLatestDataSafe();
+
+  @Query("""
+      SELECT d
+      FROM IndexData d
+      JOIN FETCH d.indexInfo i
+      WHERE i.id IN :indexInfoIds
+        AND d.baseDate BETWEEN :startDate AND :endDate
+      """)
+  List<IndexData> findByIndexInfoIdInAndBaseDateBetween(
+      @Param("indexInfoIds") List<UUID> indexInfoIds,
+      @Param("startDate") LocalDate startDate,
+      @Param("endDate") LocalDate endDate
+  );
+  Optional<IndexData> findByIndexInfoAndBaseDate(IndexInfo indexInfo, LocalDate baseDate);
+  boolean existsByIndexInfoIdAndBaseDate(@NotNull UUID uuid, @NotNull LocalDate localDate);
+}
+
+
+
+
