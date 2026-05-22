@@ -1,6 +1,8 @@
 package com.codeit.findex.service.impl;
 
+
 import com.codeit.findex.dto.indexdata.ChartDataPoint;
+import com.codeit.findex.dto.indexdata.CursorPageResponseIndexDataDto;
 import com.codeit.findex.dto.indexdata.IndexChartDto;
 import com.codeit.findex.dto.indexdata.IndexDataCreateRequest;
 import com.codeit.findex.dto.indexdata.IndexDataResponse;
@@ -11,6 +13,7 @@ import com.codeit.findex.dto.indexdata.RankedIndexPerformanceDto;
 import com.codeit.findex.entity.IndexData;
 import com.codeit.findex.entity.IndexInfo;
 import com.codeit.findex.entity.PeriodType;
+import com.codeit.findex.exception.DuplicateException;
 import com.codeit.findex.repository.IndexDataRepository;
 import com.codeit.findex.repository.IndexInfoRepository;
 import com.codeit.findex.service.IndexDataService;
@@ -20,20 +23,14 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.codeit.findex.exception.DuplicateException;
 
 @Service
 @RequiredArgsConstructor
@@ -46,7 +43,9 @@ public class IndexDataServiceImpl implements IndexDataService {
   private record PerformanceContext(
       List<IndexData> currentDataList,
       Map<UUID, IndexData> beforeMap
-  ) {}
+  ) {
+
+  }
 
   @Override
   @Transactional
@@ -62,6 +61,7 @@ public class IndexDataServiceImpl implements IndexDataService {
     IndexData indexData = IndexData.builder()
         .indexInfo(indexInfo)
         .baseDate(request.baseDate())
+        .sourceType("USER")
         .marketPrice(request.marketPrice())
         .closingPrice(request.closingPrice())
         .highPrice(request.highPrice())
@@ -106,10 +106,51 @@ public class IndexDataServiceImpl implements IndexDataService {
   }
 
   @Override
-  public Page<IndexDataResponse> search(IndexDataSearchRequest request) {
-    Pageable pageable = PageRequest.of(request.page(), request.size());
-    return indexDataRepository.search(request, pageable)
-        .map(IndexDataResponse::from);
+  public CursorPageResponseIndexDataDto<IndexDataResponse> search(IndexDataSearchRequest request) {
+    List<IndexData> rawList = indexDataRepository.search(request); // size+1개 fetch
+
+    boolean hasNext = rawList.size() > request.size();
+    if (hasNext) {
+      rawList = rawList.subList(0, request.size());
+    }
+
+    List<IndexDataResponse> content = rawList.stream()
+        .map(IndexDataResponse::from)
+        .toList();
+
+    String nextCursor = null;
+    UUID nextIdAfter = null;
+    if (hasNext && !rawList.isEmpty()) {
+      IndexData last = rawList.get(rawList.size() - 1);
+      nextCursor = resolveCursorValue(last, request.sortField());
+      nextIdAfter = last.getId();
+    }
+
+    long totalElements = indexDataRepository.countBySearchCondition(request);
+
+    return new CursorPageResponseIndexDataDto<>(
+        content,
+        nextCursor,
+        nextIdAfter,
+        content.size(),
+        totalElements,
+        hasNext
+    );
+  }
+
+  private String resolveCursorValue(IndexData data, String sortField) {
+    return switch (sortField) {
+      case "marketPrice" -> String.valueOf(data.getMarketPrice());
+      case "closingPrice" -> String.valueOf(data.getClosingPrice());
+      case "highPrice" -> String.valueOf(data.getHighPrice());
+      case "lowPrice" -> String.valueOf(data.getLowPrice());
+      case "versus" -> String.valueOf(data.getVersus());
+      case "fluctuationRate" -> String.valueOf(data.getFluctuationRate());
+      case "tradingQuantity" -> String.valueOf(data.getTradingQuantity());
+      case "tradingPrice" -> String.valueOf(data.getTradingPrice());
+      case "marketTotalAmount" -> String.valueOf(data.getMarketTotalAmount());
+      default -> String.valueOf(data.getBaseDate());
+    };
   }
 
   @Override
@@ -149,17 +190,22 @@ public class IndexDataServiceImpl implements IndexDataService {
 
     for (int i = 0; i < totalSize; i++) {
       IndexData current = rawData.get(i);
-      BigDecimal currentPrice = current.getClosingPrice() != null ? current.getClosingPrice() : BigDecimal.ZERO;
+      BigDecimal currentPrice =
+          current.getClosingPrice() != null ? current.getClosingPrice() : BigDecimal.ZERO;
 
       sum5 = sum5.add(currentPrice);
       if (i >= 5) {
-        BigDecimal out5Price = rawData.get(i - 5).getClosingPrice() != null ? rawData.get(i - 5).getClosingPrice() : BigDecimal.ZERO;
+        BigDecimal out5Price =
+            rawData.get(i - 5).getClosingPrice() != null ? rawData.get(i - 5).getClosingPrice()
+                : BigDecimal.ZERO;
         sum5 = sum5.subtract(out5Price);
       }
 
       sum20 = sum20.add(currentPrice);
       if (i >= 20) {
-        BigDecimal out20Price = rawData.get(i - 20).getClosingPrice() != null ? rawData.get(i - 20).getClosingPrice() : BigDecimal.ZERO;
+        BigDecimal out20Price =
+            rawData.get(i - 20).getClosingPrice() != null ? rawData.get(i - 20).getClosingPrice()
+                : BigDecimal.ZERO;
         sum20 = sum20.subtract(out20Price);
       }
 
@@ -193,7 +239,8 @@ public class IndexDataServiceImpl implements IndexDataService {
   }
 
   @Override
-  public List<RankedIndexPerformanceDto> getPerformanceRanking(UUID indexInfoId, PeriodType periodType, int limit) {
+  public List<RankedIndexPerformanceDto> getPerformanceRanking(UUID indexInfoId,
+      PeriodType periodType, int limit) {
     IndexDataServiceImpl.PerformanceContext context = preparePerformanceContext(periodType);
 
     List<IndexPerformanceDto> performances = new ArrayList<>();
@@ -224,12 +271,17 @@ public class IndexDataServiceImpl implements IndexDataService {
   public List<IndexPerformanceDto> getPerformanceFavorite(PeriodType periodType) {
     PerformanceContext context = preparePerformanceContext(periodType);
 
-    return context.currentDataList().stream()
-        .filter(d -> d.getIndexInfo() != null && d.getIndexInfo().isFavorite())
+    List<IndexData> curDataList = indexDataRepository.findByFavoriteWithLatestDataSafe();
+
+    return curDataList.stream()
         .map(current -> {
           IndexData before = context.beforeMap().get(current.getIndexInfo().getId());
           return convertToPerformanceDto(current, before);
         })
+        .sorted(Comparator.comparing(
+            IndexPerformanceDto::fluctuationRate,
+            Comparator.nullsLast(Comparator.reverseOrder())
+        ))
         .toList();
   }
 
@@ -241,11 +293,12 @@ public class IndexDataServiceImpl implements IndexDataService {
 
     LocalDate targetDate = resolveTargetDate(actualToday, periodType);
 
-    LocalDate actualBeforeDate = indexDataRepository.findLatestAvailableDate(targetDate)
+    LocalDate actualBeforeDate = indexDataRepository.findOldestAvailableDate(targetDate)
         .orElseThrow(() -> new IllegalArgumentException("비교할 과거 데이터가 존재하지 않습니다."));
 
     List<IndexData> currentDataList = indexDataRepository.findByBaseDateWithIndexInfo(actualToday);
-    List<IndexData> beforeDataList = indexDataRepository.findByBaseDateWithIndexInfo(actualBeforeDate);
+    List<IndexData> beforeDataList = indexDataRepository.findByBaseDateWithIndexInfo(
+        actualBeforeDate);
 
     Map<UUID, IndexData> beforeMap = beforeDataList.stream()
         .collect(Collectors.toMap(d -> d.getIndexInfo().getId(), d -> d));
@@ -254,8 +307,11 @@ public class IndexDataServiceImpl implements IndexDataService {
   }
 
   private IndexPerformanceDto convertToPerformanceDto(IndexData current, IndexData before) {
-    BigDecimal currentPrice = current.getClosingPrice() != null ? current.getClosingPrice() : BigDecimal.ZERO;
-    BigDecimal beforePrice = (before != null && before.getClosingPrice() != null) ? before.getClosingPrice() : currentPrice;
+    BigDecimal currentPrice =
+        current.getClosingPrice() != null ? current.getClosingPrice() : BigDecimal.ZERO;
+    BigDecimal beforePrice =
+        (before != null && before.getClosingPrice() != null) ? before.getClosingPrice()
+            : currentPrice;
 
     BigDecimal versus = currentPrice.subtract(beforePrice);
 

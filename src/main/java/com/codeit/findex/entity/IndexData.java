@@ -32,13 +32,17 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class IndexData extends BaseEntity {
-//주석 -> 가독성
+
+  //주석 -> 가독성
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "index_info_id", nullable = false)
   private IndexInfo indexInfo;
 
   @Column(name = "base_date", nullable = false)
   private LocalDate baseDate;
+
+  @Column(name = "source_type", nullable = false, length = 20)
+  private String sourceType;
 
   @Column(name = "market_price", precision = 10, scale = 2)
   private BigDecimal marketPrice;
@@ -78,14 +82,33 @@ public class IndexData extends BaseEntity {
       Long tradingPrice,
       Long marketTotalAmount
   ) {
-    if (marketPrice != null)       this.marketPrice = marketPrice;
-    if (closingPrice != null)      this.closingPrice = closingPrice;
-    if (highPrice != null)         this.highPrice = highPrice;
-    if (lowPrice != null)          this.lowPrice = lowPrice;
-    if (versus != null)            this.versus = versus;
-    if (fluctuationRate != null)   this.fluctuationRate = fluctuationRate;
-    if (tradingQuantity != null)   this.tradingQuantity = tradingQuantity;
-    if (tradingPrice != null)      this.tradingPrice = tradingPrice;
-    if (marketTotalAmount != null) this.marketTotalAmount = marketTotalAmount;
+    if (marketPrice != null) {
+      this.marketPrice = marketPrice;
+    }
+    if (closingPrice != null) {
+      this.closingPrice = closingPrice;
+    }
+    if (highPrice != null) {
+      this.highPrice = highPrice;
+    }
+    if (lowPrice != null) {
+      this.lowPrice = lowPrice;
+    }
+    if (versus != null) {
+      this.versus = versus;
+    }
+    if (fluctuationRate != null) {
+      this.fluctuationRate = fluctuationRate;
+    }
+    if (tradingQuantity != null) {
+      this.tradingQuantity = tradingQuantity;
+    }
+    if (tradingPrice != null) {
+      this.tradingPrice = tradingPrice;
+    }
+    if (marketTotalAmount != null) {
+      this.marketTotalAmount = marketTotalAmount;
+    }
   }
+
 }

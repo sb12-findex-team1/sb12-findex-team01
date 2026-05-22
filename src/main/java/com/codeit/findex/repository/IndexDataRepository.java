@@ -1,6 +1,5 @@
 package com.codeit.findex.repository;
 
-import com.codeit.findex.dto.indexdata.IndexDataSearchRequest;
 import com.codeit.findex.entity.IndexData;
 import com.codeit.findex.entity.IndexInfo;
 import jakarta.validation.constraints.NotNull;
@@ -8,8 +7,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -38,10 +35,22 @@ public interface IndexDataRepository extends JpaRepository<IndexData, UUID>, Ind
   @Query("select MAX(id.baseDate) from IndexData id where id.baseDate <= :targetDate")
   Optional<LocalDate> findLatestAvailableDate(@Param("targetDate") LocalDate targetDate);
 
+  @Query("select MIN(id.baseDate) from IndexData id where id.baseDate >= :targetDate")
+  Optional<LocalDate> findOldestAvailableDate(@Param("targetDate") LocalDate targetDate);
+
   @Query("select id from IndexData id " +
       "join fetch id.indexInfo ii " +
       "where id.baseDate = :baseDate")
   List<IndexData> findByBaseDateWithIndexInfo(@Param("baseDate") LocalDate baseDate);
+
+  @Query("select d from IndexData d " +
+      "join fetch d.indexInfo ii " +
+      "where ii.favorite = true " +
+      "and d.baseDate = (" +
+      "   select max(sub.baseDate) from IndexData sub " +
+      "   where sub.indexInfo.id = ii.id" + // 👈 핵심: 각 지수의 고유 ID별로 가장 최신 날짜를 따로 구함
+      ")")
+  List<IndexData> findByFavoriteWithLatestDataSafe();
 
   @Query("""
       SELECT d
@@ -56,10 +65,9 @@ public interface IndexDataRepository extends JpaRepository<IndexData, UUID>, Ind
       @Param("endDate") LocalDate endDate
   );
   Optional<IndexData> findByIndexInfoAndBaseDate(IndexInfo indexInfo, LocalDate baseDate);
-
-//  List<IndexData> findAllForExport(IndexDataSearchRequest request);
-
-//  Slice<IndexData> search(IndexDataSearchRequest request, Pageable pageable);
-
   boolean existsByIndexInfoIdAndBaseDate(@NotNull UUID uuid, @NotNull LocalDate localDate);
 }
+
+
+
+

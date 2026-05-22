@@ -2,15 +2,12 @@ package com.codeit.findex.dto.indexdata;
 
 import com.codeit.findex.entity.IndexData;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
-import org.jspecify.annotations.NonNull;
 
 public record IndexDataResponse(
     UUID id,
     UUID indexInfoId,
-    String indexName,
     LocalDate baseDate,
     BigDecimal marketPrice,
     BigDecimal closingPrice,
@@ -21,24 +18,24 @@ public record IndexDataResponse(
     Long tradingQuantity,
     Long tradingPrice,
     Long marketTotalAmount,
-    Instant createdAt
+    String sourceType
 ) {
-  public static IndexDataResponse from(IndexData entity) {
+
+  public static IndexDataResponse from(IndexData indexData) {
     return new IndexDataResponse(
-        entity.getId(),
-        entity.getIndexInfo().getId(),
-        entity.getIndexInfo().getIndexName(),
-        entity.getBaseDate(),
-        entity.getMarketPrice(),
-        entity.getClosingPrice(),
-        entity.getHighPrice(),
-        entity.getLowPrice(),
-        entity.getVersus(),
-        entity.getFluctuationRate(),
-        entity.getTradingQuantity(),
-        entity.getTradingPrice(),
-        entity.getMarketTotalAmount(),
-        entity.getCreatedAt()
+        indexData.getId(),
+        indexData.getIndexInfo().getId(),
+        indexData.getBaseDate(),
+        indexData.getMarketPrice(),
+        indexData.getClosingPrice(),
+        indexData.getHighPrice(),
+        indexData.getLowPrice(),
+        indexData.getVersus(),
+        indexData.getFluctuationRate(),
+        indexData.getTradingQuantity(),
+        indexData.getTradingPrice(),
+        indexData.getMarketTotalAmount(),
+        indexData.getSourceType()
     );
   }
 }

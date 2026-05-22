@@ -288,6 +288,7 @@ public class ClientIndexSyncServiceImpl implements ClientIndexSyncService {
     return IndexData.builder()
         .indexInfo(indexInfo)
         .baseDate(LocalDate.parse(item.basDt(), DateTimeFormatter.BASIC_ISO_DATE))
+        .sourceType("OPEN_API")//프로젝트에서 SourceType Enum을 사용하지 않고 있으니까 통일성
         .marketPrice(new BigDecimal(item.mkp()))
         .closingPrice(new BigDecimal(item.clpr()))
         .highPrice(new BigDecimal(item.hipr()))
